@@ -12,6 +12,12 @@ source "$ZRB_ROOT/lib/zrb/output.sh"
 # shellcheck source=lib/zrb/cli.sh
 source "$ZRB_ROOT/lib/zrb/cli.sh"
 
+# shellcheck source=lib/zrb/lock.sh
+source "$ZRB_ROOT/lib/zrb/lock.sh"
+
+# shellcheck source=lib/zrb/completion.sh
+source "$ZRB_ROOT/lib/zrb/completion.sh"
+
 zrb_main() {
     zrb_config_defaults
     zrb_output_init
@@ -294,52 +300,6 @@ zrb_main() {
     # rsync parameters
     rsync_args="-vrltH --delete --delete-excluded -pgo --stats -h -D --numeric-ids --inplace --log-file=$backup_vault_log/rsync.log --exclude-from=$global_exclude $rsync_exclude_param $rsync_exclude_file"
 
-    f_lock_create() {
-        lockfile="$backup_vault_log/lock"
-        #pid_now=`pgrep -f "zrb.sh.* $vault"`
-        pid_now=$$
-        basename=$(basename "$0")
-        pid_locked=$(cat "$lockfile" 2>/dev/null)
-        lock_read_status=$?
-
-        if [ "$lock_read_status" -eq 0 ]; then
-            # shellcheck disable=SC2009
-            if ( ps --no-headers -o args -p "$pid_locked" | grep -q "${basename}.* $vault" ); then
-                echo "Backup job is already running!" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
-                f_say "$C_RED Backup job is already running!"
-
-                exit 1
-            else
-                f_say "$C_PURPLE Stale pidfile exists...removing."
-                f_lock_remove
-            fi
-        fi
-
-        echo "$pid_now" > "$lockfile"
-    }
-
-    f_finished_create() {
-        if [ "$rsync_ret" -eq 0 ]; then
-            touch "/$BACKUP_DATASET/$vault/FINISHED"
-        fi
-    }
-
-    f_finished_remove() {
-        file_finished="/$BACKUP_DATASET/$vault/FINISHED"
-
-        if [ -f "$file_finished" ]; then
-            rm -f "$file_finished"
-        else
-            echo "Last backup was not succesful. Continuing from the last point." | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
-            f_say "$C_RED Last backup was not succesful. Continuing from the last point."
-        fi
-    }
-
-
-    f_lock_remove() {
-        rm -f "$lockfile"
-    }
-
     f_check_remote_host() {
         # return if the backup source is a local directory
         if ( echo "$backup_source" | grep -q -Eo ^"/[0-9a-z@\.-]+" ); then
@@ -409,13 +369,17 @@ zrb_main() {
     }
 
     ################## doing rsync ####################
+    lockfile="$backup_vault_log/lock"
+    file_finished="/$BACKUP_DATASET/$vault/FINISHED"
+
     f_ssh_config
     f_check_remote_host
     f_check_placeholder
-    f_lock_create
+    zrb_lock_create "$lockfile" "$(basename "$0")" "$vault" "$email_notify_address" || exit 1
+
     #echo "DEBUG: backup_host - before f_pre_run_script: $backup_host"
     f_pre_run_script
-    f_finished_remove
+    zrb_completion_begin "$file_finished" "$vault" "$email_notify_address"
 
     ############################### rsync ################################
     f_say "$C_GREEN VAULT:$C_BLUE $vault"
@@ -455,7 +419,7 @@ zrb_main() {
         f_say "$C_GREEN  DELTA:$C_BLUE $duetime_human"
     fi
 
-    f_lock_remove
+    zrb_lock_remove "$lockfile"
 
     if [ "$rsync_ret" -ne 0 ]; then
         echo "rsync exited with non-zero status code: $rsync_ret !" | mail -s "$HOSTNAME zrb.sh ERROR: $vault" "$email_notify_address"
@@ -464,7 +428,7 @@ zrb_main() {
         exit 1
     fi
 
-    f_finished_create
+    zrb_completion_mark_success "$file_finished" "$rsync_ret"
     ################## doing rsync ####################
 
     ################# doing snapshot & expiring ##############
