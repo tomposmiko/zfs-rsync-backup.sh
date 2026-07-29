@@ -69,6 +69,110 @@ zrb_preflight_writable_directory() {
     zrb_preflight_pass "$label is writable: $directory_path"
 }
 
+zrb_preflight_directory() {
+    local directory_path=$1
+    local label=$2
+
+    if [ ! -d "$directory_path" ]; then
+        zrb_preflight_fail "$label does not exist: $directory_path"
+
+        return 1
+    fi
+
+    zrb_preflight_pass "$label exists: $directory_path"
+}
+
+zrb_preflight_dataset() {
+    local dataset_name=$1
+    local label=$2
+
+    if ( ! command -v zfs > /dev/null 2>&1 ); then
+        return 1
+    fi
+
+    if ( ! zfs list -s name "$dataset_name" > /dev/null 2>&1 ); then
+        zrb_preflight_fail "$label does not exist or is not accessible: $dataset_name"
+
+        return 1
+    fi
+
+    zrb_preflight_pass "$label exists and is accessible: $dataset_name"
+}
+
+zrb_preflight_source() {
+    local target_name=$1
+    local source_file=$2
+    local -n source_ref=$target_name
+
+    source_ref=""
+
+    if ( ! zrb_preflight_readable_file "$source_file" "Vault source file" ); then
+        return 1
+    fi
+
+    source_ref=$(<"$source_file")
+
+    if [ -z "$source_ref" ]; then
+        zrb_preflight_fail "Vault source file is empty: $source_file"
+
+        return 1
+    fi
+
+    zrb_preflight_pass "Vault source is configured: $source_ref"
+}
+
+zrb_preflight_excludes() {
+    local parameter_exclude_file=$1
+    local vault_exclude_file=$2
+    local check_status=0
+
+    if [ -n "$parameter_exclude_file" ]; then
+        zrb_preflight_readable_file "$parameter_exclude_file" "Command-line exclude file" || check_status=1
+    else
+        zrb_preflight_pass "Command-line exclude file is not configured"
+    fi
+
+    if [ -f "$vault_exclude_file" ]; then
+        zrb_preflight_readable_file "$vault_exclude_file" "Vault exclude file" || check_status=1
+    else
+        zrb_preflight_pass "Vault exclude file is not configured"
+    fi
+
+    if [ -n "$parameter_exclude_file" ] && [ -f "$vault_exclude_file" ]; then
+        zrb_preflight_fail "Command-line and vault exclude files are mutually exclusive"
+        check_status=1
+    fi
+
+    return "$check_status"
+}
+
+zrb_preflight_notify_address() {
+    local notify_file=$1
+    local notify_address
+
+    if [ ! -f "$notify_file" ]; then
+        zrb_preflight_pass "Vault notification address is not configured"
+
+        return 0
+    fi
+
+    notify_address=$(<"$notify_file")
+
+    if [ -z "$notify_address" ]; then
+        zrb_preflight_pass "Vault notification address is not configured"
+
+        return 0
+    fi
+
+    if [[ $notify_address != *@* ]]; then
+        zrb_preflight_fail "Vault notification address is invalid: $notify_address"
+
+        return 1
+    fi
+
+    zrb_preflight_pass "Vault notification address is valid: $notify_address"
+}
+
 zrb_preflight_hook() {
     local hook_file=$1
 
@@ -117,7 +221,7 @@ zrb_preflight_retention() {
 }
 
 zrb_preflight_run() {
-    local source_path=$1
+    local backup_dataset=$1
     local ssh_config=$2
     local global_placeholder_file=$3
     local vault_placeholder_file=$4
@@ -128,44 +232,58 @@ zrb_preflight_run() {
     local expiration_mode=$9
     local frequency_list=${10}
     local global_retention_file=${11}
+    local vault_root=${vault_config%/config}
+    local vault_data="$vault_root/data"
+    local vault_dataset=${vault_root#/}
+    local source_file="$vault_config/source"
+    local source_path=""
     local placeholder_path=""
     local remote_host=""
     local check_status=0
+    local source_status=0
 
     ZRB_PREFLIGHT_PASS_COUNT=0
     ZRB_PREFLIGHT_FAIL_COUNT=0
 
     zrb_preflight_commands bash date grep mail ps rsync ssh zfs || check_status=1
+    zrb_preflight_dataset "$backup_dataset" "Backup dataset" || check_status=1
+    zrb_preflight_dataset "$vault_dataset" "Vault dataset" || check_status=1
+    zrb_preflight_directory "$vault_root" "Vault directory" || check_status=1
+    zrb_preflight_directory "$vault_config" "Vault configuration directory" || check_status=1
+    zrb_preflight_directory "$vault_data" "Vault destination directory" || check_status=1
+    zrb_preflight_directory "$vault_log" "Vault log directory" || check_status=1
     zrb_preflight_readable_file "$global_exclude_file" "Global exclude file" || check_status=1
 
-    if [ -n "$parameter_exclude_file" ]; then
-        zrb_preflight_readable_file "$parameter_exclude_file" "Exclude file" || check_status=1
-    else
-        zrb_preflight_pass "Command-line exclude file is not configured"
-    fi
-
+    zrb_preflight_excludes "$parameter_exclude_file" "$vault_config/exclude" || check_status=1
+    zrb_preflight_notify_address "$vault_config/notify" || check_status=1
     zrb_preflight_writable_directory "$vault_log" "Vault log directory" || check_status=1
-    zrb_source_placeholder_path placeholder_path "$source_path" "$global_placeholder_file" "$vault_placeholder_file" || check_status=1
+    zrb_preflight_source source_path "$source_file" || source_status=1
 
-    if [ -n "$placeholder_path" ] && [ ! -e "$placeholder_path" ]; then
-        zrb_preflight_fail "Placeholder does not exist: $placeholder_path"
-        check_status=1
-    elif [ -n "$placeholder_path" ]; then
-        zrb_preflight_pass "Local source and placeholder exist: $placeholder_path"
-    else
-        zrb_preflight_pass "Placeholder validation is not required for a remote source"
-    fi
-
-    if ( ! zrb_source_remote_accessible "$source_path" "$ssh_config" ); then
-        zrb_preflight_fail "Remote source is not accessible: $source_path"
+    if [ "$source_status" -ne 0 ]; then
         check_status=1
     else
-        remote_host=$(zrb_source_remote_host "$source_path") || true
+        zrb_source_placeholder_path placeholder_path "$source_path" "$global_placeholder_file" "$vault_placeholder_file" || check_status=1
 
-        if [ -n "$remote_host" ]; then
-            zrb_preflight_pass "Remote source is accessible through SSH: $remote_host"
+        if [ -n "$placeholder_path" ] && [ ! -e "$placeholder_path" ]; then
+            zrb_preflight_fail "Placeholder does not exist: $placeholder_path"
+            check_status=1
+        elif [ -n "$placeholder_path" ]; then
+            zrb_preflight_pass "Local source and placeholder exist: $placeholder_path"
         else
-            zrb_preflight_pass "SSH validation is not required for a local source"
+            zrb_preflight_pass "Placeholder validation is not required for a remote source"
+        fi
+
+        if ( ! zrb_source_remote_accessible "$source_path" "$ssh_config" ); then
+            zrb_preflight_fail "Remote source is not accessible: $source_path"
+            check_status=1
+        else
+            remote_host=$(zrb_source_remote_host "$source_path") || true
+
+            if [ -n "$remote_host" ]; then
+                zrb_preflight_pass "Remote source is accessible through SSH: $remote_host"
+            else
+                zrb_preflight_pass "SSH validation is not required for a local source"
+            fi
         fi
     fi
 

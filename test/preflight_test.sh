@@ -84,6 +84,38 @@ test_failure_summary_reports_counts() {
     assert_equal $'\nFAIL: Preflight check failed: 3 checks passed, 2 checks failed.' "$output" "failed preflight summary"
 }
 
+test_conflicting_excludes_fail() {
+    local test_dir
+    local parameter_exclude_file
+    local vault_exclude_file
+
+    test_dir=$(mktemp -d)
+    parameter_exclude_file="$test_dir/parameter-exclude"
+    vault_exclude_file="$test_dir/vault-exclude"
+
+    touch "$parameter_exclude_file" "$vault_exclude_file"
+
+    ( ! zrb_preflight_excludes "$parameter_exclude_file" "$vault_exclude_file" > /dev/null )
+
+    rm -f "$parameter_exclude_file" "$vault_exclude_file"
+    rmdir "$test_dir"
+}
+
+test_invalid_notify_address_fails() {
+    local test_dir
+    local notify_file
+
+    test_dir=$(mktemp -d)
+    notify_file="$test_dir/notify"
+
+    echo "invalid-address" > "$notify_file"
+
+    ( ! zrb_preflight_notify_address "$notify_file" > /dev/null )
+
+    rm -f "$notify_file"
+    rmdir "$test_dir"
+}
+
 test_valid_hook_syntax() {
     local test_dir
     local hook_file
@@ -129,6 +161,8 @@ for test_name in \
     test_command_check_reports_all_results \
     test_success_summary_reports_count \
     test_failure_summary_reports_counts \
+    test_conflicting_excludes_fail \
+    test_invalid_notify_address_fails \
     test_valid_hook_syntax \
     test_invalid_hook_syntax_fails \
     test_missing_required_file_fails \

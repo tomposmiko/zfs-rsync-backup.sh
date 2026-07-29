@@ -112,6 +112,14 @@ zrb_main() {
         exit 0
     fi
 
+    ssh_config=$(zrb_source_ssh_config "$backup_vault_conf/ssh")
+
+    if [ "$CHECK_ONLY" -eq 1 ]; then
+        zrb_preflight_run "$BACKUP_DATASET" "$ssh_config" "$global_placeholder" "$backup_vault_conf/placeholder" "$global_exclude" "${backup_exclude_param:-}" "$backup_vault_log" "$backup_vault_conf" "$expire" "$FREQ_LIST" "$global_expire" || exit 1
+
+        exit 0
+    fi
+
     zrb_vault_validate "$vault_dataset" "$vault_root" "$backup_vault_conf" "$backup_vault_dest" "$backup_vault_log" "$vault" "$operation_notify_address" || exit 1
 
     if ( zrb_vault_is_disabled "$backup_vault_conf" ); then
@@ -127,13 +135,6 @@ zrb_main() {
     zrb_vault_resolve_excludes rsync_exclude_param rsync_exclude_file "${backup_exclude_param:-}" "$backup_vault_conf" || exit 1
 
     zrb_vault_add_notify_address email_notify_address "$backup_vault_conf" || exit 1
-    ssh_config=$(zrb_source_ssh_config "$backup_vault_conf/ssh")
-
-    if [ "$CHECK_ONLY" -eq 1 ]; then
-        zrb_preflight_run "$backup_source" "$ssh_config" "$global_placeholder" "$backup_vault_conf/placeholder" "$global_exclude" "${backup_exclude_param:-}" "$backup_vault_log" "$backup_vault_conf" "$expire" "$FREQ_LIST" "$global_expire" || exit 1
-
-        exit 0
-    fi
 
     if ( zrb_retention_is_only_mode "$expire" ); then
         for freq_type in $FREQ_LIST; do

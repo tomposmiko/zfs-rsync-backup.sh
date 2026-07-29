@@ -54,6 +54,12 @@ test_complete_local_backup() {
     assert_file_empty "$zfs_log" || test_status=1
 
     assert_file_contains "$test_dir/check.out" "PASS: Required command 'zfs'" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Backup dataset exists and is accessible: $dataset_name" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Vault dataset exists and is accessible: $dataset_name/photos" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Vault configuration directory exists: $vault_root/config" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Vault destination directory exists: $vault_root/data" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Vault source file is readable: $vault_root/config/source" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Vault source is configured: $source_dir" || test_status=1
     assert_file_contains "$test_dir/check.out" "PASS: Global exclude file is readable: $config_dir/exclude" || test_status=1
     assert_file_contains "$test_dir/check.out" "PASS: Vault log directory is writable: $vault_root/log" || test_status=1
     assert_file_contains "$test_dir/check.out" "PASS: Local source and placeholder exist: $source_dir" || test_status=1
