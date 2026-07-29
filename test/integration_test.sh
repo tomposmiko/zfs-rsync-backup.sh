@@ -47,7 +47,7 @@ test_complete_local_backup() {
 
     ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$sbin_dir/zrb.sh" --check -g "$config_dir" -v photos > "$test_dir/check.out"
 
-    if [ -f "$vault_root/FINISHED" ] && [ ! -e "$vault_root/RUNNING" ] && [ ! -e "$vault_root/FAILED" ] && [ ! -e "$vault_root/log/lock" ] && [ ! -s "$zfs_log" ] && ( grep -Fq "Preflight check passed." "$test_dir/check.out" ); then
+    if [ -f "$vault_root/FINISHED" ] && [ ! -e "$vault_root/RUNNING" ] && [ ! -e "$vault_root/FAILED" ] && [ ! -e "$vault_root/log/lock" ] && [ ! -s "$zfs_log" ] && ( grep -Fq "PASS: required command 'zfs'" "$test_dir/check.out" ) && ( grep -Fq "PASS: Global exclude file is readable: $config_dir/exclude" "$test_dir/check.out" ) && ( grep -Fq "PASS: Vault log directory is writable: $vault_root/log" "$test_dir/check.out" ) && ( grep -Fq "PASS: local source and placeholder exist: $source_dir" "$test_dir/check.out" ) && ( grep -Fq "PASS: SSH validation is not required for a local source" "$test_dir/check.out" ) && ( grep -Fq "PASS: retention validation is not required for mode 'no'" "$test_dir/check.out" ) && ( grep -Fq "Preflight check passed." "$test_dir/check.out" ); then
         :
     else
         cat "$test_dir/check.out"

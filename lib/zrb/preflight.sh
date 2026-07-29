@@ -10,6 +10,8 @@ zrb_preflight_commands() {
 
             return 1
         fi
+
+        echo "PASS: required command '$command_name'"
     done
 }
 
@@ -22,6 +24,8 @@ zrb_preflight_readable_file() {
 
         return 1
     fi
+
+    echo "PASS: $label is readable: $file_path"
 }
 
 zrb_preflight_writable_directory() {
@@ -33,13 +37,18 @@ zrb_preflight_writable_directory() {
 
         return 1
     fi
+
+    echo "PASS: $label is writable: $directory_path"
 }
 
 zrb_preflight_hook() {
     local hook_file=$1
 
     if [ -f "$hook_file" ]; then
-        bash -n "$hook_file"
+        bash -n "$hook_file" || return 1
+        echo "PASS: hook syntax is valid: $hook_file"
+    else
+        echo "PASS: hook is not configured: $hook_file"
     fi
 }
 
@@ -53,6 +62,8 @@ zrb_preflight_retention() {
     local minimum_count
 
     if [ "$mode" == "no" ]; then
+        echo "PASS: retention validation is not required for mode 'no'"
+
         return 0
     fi
 
@@ -65,6 +76,8 @@ zrb_preflight_retention() {
 
             return 1
         fi
+
+        echo "PASS: retention configuration is valid for '$frequency': period '$retention_period', minimum '$minimum_count'"
     done
 }
 
@@ -81,12 +94,15 @@ zrb_preflight_run() {
     local frequency_list=${10}
     local global_retention_file=${11}
     local placeholder_path=""
+    local remote_host=""
 
     zrb_preflight_commands bash date grep mail ps rsync ssh zfs || return 1
     zrb_preflight_readable_file "$global_exclude_file" "Global exclude file" || return 1
 
     if [ -n "$parameter_exclude_file" ]; then
         zrb_preflight_readable_file "$parameter_exclude_file" "Exclude file" || return 1
+    else
+        echo "PASS: command-line exclude file is not configured"
     fi
 
     zrb_preflight_writable_directory "$vault_log" "Vault log directory" || return 1
@@ -98,10 +114,24 @@ zrb_preflight_run() {
         return 1
     fi
 
+    if [ -n "$placeholder_path" ]; then
+        echo "PASS: local source and placeholder exist: $placeholder_path"
+    else
+        echo "PASS: placeholder validation is not required for a remote source"
+    fi
+
     if ( ! zrb_source_remote_accessible "$source_path" "$ssh_config" ); then
         echo "Remote source is not accessible: $source_path"
 
         return 1
+    fi
+
+    remote_host=$(zrb_source_remote_host "$source_path") || true
+
+    if [ -n "$remote_host" ]; then
+        echo "PASS: remote source is accessible through SSH: $remote_host"
+    else
+        echo "PASS: SSH validation is not required for a local source"
     fi
 
     zrb_preflight_hook "$vault_config/pre-run.sh" || return 1
