@@ -82,6 +82,29 @@ test_vault_paths() {
         assert_equal "/pool/backups/photos/log" "$backup_vault_log" "vault log path"
 }
 
+test_load_notify_address() {
+    local test_dir
+    local notify_file
+    local notify_address=""
+
+    test_dir=$(mktemp -d)
+    notify_file="$test_dir/notify_address"
+    echo "alerts@example.com" > "$notify_file"
+
+    zrb_config_load_notify_address notify_address "$notify_file"
+    assert_equal "alerts@example.com" "$notify_address" "notification address"
+
+    rm -f "$notify_file"
+    rmdir "$test_dir"
+}
+
+test_default_notify_address() {
+    local notify_address=""
+
+    zrb_config_load_notify_address notify_address /does/not/exist
+    assert_equal "root" "$notify_address" "default notification address"
+}
+
 failures=0
 for test_name in \
     test_defaults \
@@ -91,7 +114,9 @@ for test_name in \
     test_unknown_option_fails \
     test_global_paths \
     test_relative_global_path_fails \
-    test_vault_paths
+    test_vault_paths \
+    test_load_notify_address \
+    test_default_notify_address
 do
     run_test "$test_name" || failures=$((failures + 1))
 done

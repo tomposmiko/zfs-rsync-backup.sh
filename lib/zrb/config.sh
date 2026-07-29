@@ -12,6 +12,7 @@ zrb_config_defaults() {
     expire="no"
     QUIET_NOTIFICATIONS=1
     INTERACTIVE_SESSION=0
+    email_notify_address="root"
 
     export PATH
 }
@@ -33,6 +34,18 @@ zrb_config_load_backup_dataset() {
     fi
 
     export BACKUP_DATASET
+}
+
+zrb_config_load_notify_address() {
+    local target_name=$1
+    local notify_file=$2
+    local -n notify_ref=$target_name
+
+    if [ -f "$notify_file" ]; then
+        notify_ref=$(<"$notify_file")
+    else
+        notify_ref="root"
+    fi
 }
 
 zrb_config_set_vault_paths() {

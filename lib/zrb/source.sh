@@ -24,6 +24,38 @@ zrb_source_ssh_config() {
     fi
 }
 
+zrb_source_validate_placeholder() {
+    local source_path=$1
+    local global_placeholder_file=$2
+    local vault_placeholder_file=$3
+    local vault_name=$4
+    local notify_address=$5
+    local placeholder=""
+    local placeholder_path
+
+    if [[ $source_path != /* ]]; then
+        return 0
+    fi
+
+    if [ -e "$global_placeholder_file" ]; then
+        placeholder=$(<"$global_placeholder_file")
+    fi
+
+    if [ -f "$vault_placeholder_file" ]; then
+        placeholder=$(<"$vault_placeholder_file")
+    fi
+
+    placeholder_path="$source_path/$placeholder"
+
+    if [ ! -e "$placeholder_path" ]; then
+        echo "Placeholder file defined but does not exist: $placeholder_path !" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
+        f_say "$C_RED Placeholder file defined but does not exist: $placeholder_path !"
+        f_say "$C_RED Filesystem is not mounted?"
+
+        return 1
+    fi
+}
+
 zrb_source_check_remote_access() {
     local source_path=$1
     local ssh_config=$2

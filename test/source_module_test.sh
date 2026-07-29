@@ -67,6 +67,46 @@ test_inaccessible_remote_source_fails() {
     ( ! zrb_source_check_remote_access backup@example.com:/srv/data "" photos root )
 }
 
+test_existing_local_source_without_placeholder_passes() {
+    local test_dir
+
+    test_dir=$(mktemp -d)
+
+    zrb_source_validate_placeholder "$test_dir" "$test_dir/missing-global" "$test_dir/missing-vault" photos root
+
+    rmdir "$test_dir"
+}
+
+test_vault_placeholder_overrides_global_placeholder() {
+    local test_dir
+
+    test_dir=$(mktemp -d)
+    echo "global-marker" > "$test_dir/global-placeholder"
+    echo "vault-marker" > "$test_dir/vault-placeholder"
+    touch "$test_dir/vault-marker"
+
+    zrb_source_validate_placeholder "$test_dir" "$test_dir/global-placeholder" "$test_dir/vault-placeholder" photos root
+
+    rm -f "$test_dir/global-placeholder" "$test_dir/vault-placeholder" "$test_dir/vault-marker"
+    rmdir "$test_dir"
+}
+
+test_missing_placeholder_fails() {
+    local test_dir
+
+    test_dir=$(mktemp -d)
+    echo "missing-marker" > "$test_dir/placeholder"
+
+    ( ! zrb_source_validate_placeholder "$test_dir" "$test_dir/placeholder" "$test_dir/missing-vault" photos root )
+
+    rm -f "$test_dir/placeholder"
+    rmdir "$test_dir"
+}
+
+test_remote_source_skips_placeholder_check() {
+    zrb_source_validate_placeholder backup@example.com:/srv /does/not/exist /does/not/exist photos root
+}
+
 failures=0
 
 for test_name in \
@@ -76,7 +116,11 @@ for test_name in \
     test_missing_ssh_config_returns_empty \
     test_local_source_skips_ssh_check \
     test_accessible_remote_source_passes \
-    test_inaccessible_remote_source_fails
+    test_inaccessible_remote_source_fails \
+    test_existing_local_source_without_placeholder_passes \
+    test_vault_placeholder_overrides_global_placeholder \
+    test_missing_placeholder_fails \
+    test_remote_source_skips_placeholder_check
 do
     run_test "$test_name" || failures=$((failures + 1))
 done
