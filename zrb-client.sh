@@ -1,16 +1,31 @@
 #!/bin/bash
 
+ZRB_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-apt install -y sudo rsync
+# shellcheck source=lib/zrb/client.sh
+source "$ZRB_ROOT/lib/zrb/client.sh"
 
-name="backup-zrb"
+zrb_client_main() {
+    local parse_status
 
-useradd -m -U -s /bin/bash -d "/home/$name" "$name"
-install -m 0700 -o "$name" -g "$name" -d "/home/$name/.ssh/"
-echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHXQzHeVvpckvAXzsh/zeiahZtOljD96ii5nCFc9YX0u root@backup201" > "/home/$name/.ssh/authorized_keys"
-chmod 0600 "/home/$name/.ssh/authorized_keys"
-chown "$name:$name" "/home/$name/.ssh/authorized_keys"
+    zrb_client_defaults
 
-echo -e "Cmnd_Alias C_ZRB = /usr/bin/rsync --server --sender -vlHogDtpre.iLsfxC --numeric-ids --inplace . //\nbackup-zrb	ALL=(ALL:ALL) NOPASSWD:C_ZRB" > /etc/sudoers.d/zrb
-chmod 0440 /etc/sudoers.d/zrb
+    zrb_client_parse_args "$@"
+    parse_status=$?
 
+    if [ "$parse_status" -eq 2 ]; then
+        return 0
+    fi
+
+    if [ "$parse_status" -ne 0 ]; then
+        zrb_client_usage
+
+        return "$parse_status"
+    fi
+
+    zrb_client_apply "$CLIENT_USER" "$CLIENT_PUBLIC_KEY_FILE" "$CLIENT_DRY_RUN"
+}
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+    zrb_client_main "$@"
+fi

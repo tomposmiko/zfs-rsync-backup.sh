@@ -39,6 +39,16 @@ $ zrb.sh -a hostname:/ -v VAULT
 
 Initializes zfs dataset of the VAULT and necessary directories and define rsync source.
 
+#### client setup
+
+Copy the backup server public key to the client and preview the required changes:
+
+$ zrb-client.sh --public-key-file /path/to/backup.pub --dry-run
+
+Apply the client configuration:
+
+$ zrb-client.sh --public-key-file /path/to/backup.pub
+
 #### manual running
 $ zrb.sh-v VAULT
 

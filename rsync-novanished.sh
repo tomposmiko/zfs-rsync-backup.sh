@@ -1,10 +1,10 @@
-#!/bin/bash -x
+#!/bin/bash
 
-#rsync --rsync-path "sudo rsync" "$@"
-args=("$@")
-rsync --rsync-path='sudo rsync' "${args[@]}"
-e=$?
-if [ $e -eq 24 -o $e -eq 23 ]; then
-  exit 0
+rsync --rsync-path="sudo rsync" "$@"
+status=$?
+
+if [ "$status" -eq 23 ] || [ "$status" -eq 24 ]; then
+    exit 0
 fi
-exit $e
+
+exit "$status"
