@@ -19,67 +19,112 @@ mail() {
     :
 }
 
-test_begin_removes_existing_marker() {
+test_begin_marks_running() {
     local test_dir
-    local completion_file
+    local finished_file
+    local running_file
+    local failed_file
 
     test_dir=$(mktemp -d)
-    completion_file="$test_dir/FINISHED"
-    touch "$completion_file"
+    finished_file="$test_dir/FINISHED"
+    running_file="$test_dir/RUNNING"
+    failed_file="$test_dir/FAILED"
+    touch "$finished_file"
 
-    zrb_completion_begin "$completion_file" photos root
+    zrb_completion_begin "$finished_file" "$running_file" "$failed_file" photos root
 
-    [ ! -e "$completion_file" ]
+    [ ! -e "$finished_file" ] && [ -f "$running_file" ] && [ ! -e "$failed_file" ]
+
+    rm -f "$running_file"
     rmdir "$test_dir"
 }
 
-test_begin_accepts_missing_marker() {
+test_abandoned_run_becomes_failed() {
     local test_dir
-    local completion_file
+    local finished_file
+    local running_file
+    local failed_file
 
     test_dir=$(mktemp -d)
-    completion_file="$test_dir/FINISHED"
+    finished_file="$test_dir/FINISHED"
+    running_file="$test_dir/RUNNING"
+    failed_file="$test_dir/FAILED"
+    touch "$running_file"
 
-    zrb_completion_begin "$completion_file" photos root
+    zrb_completion_begin "$finished_file" "$running_file" "$failed_file" photos root
 
-    [ ! -e "$completion_file" ]
+    [ -f "$running_file" ] && [ -f "$failed_file" ] && [ ! -e "$finished_file" ]
+
+    rm -f "$running_file" "$failed_file"
     rmdir "$test_dir"
 }
 
-test_success_creates_marker() {
+test_success_clears_running_and_failed() {
     local test_dir
-    local completion_file
+    local finished_file
+    local running_file
+    local failed_file
 
     test_dir=$(mktemp -d)
-    completion_file="$test_dir/FINISHED"
+    finished_file="$test_dir/FINISHED"
+    running_file="$test_dir/RUNNING"
+    failed_file="$test_dir/FAILED"
+    touch "$running_file" "$failed_file"
 
-    zrb_completion_mark_success "$completion_file" 0
+    zrb_completion_mark_success "$finished_file" "$running_file" "$failed_file" 0
 
-    [ -f "$completion_file" ]
-    rm -f "$completion_file"
+    [ -f "$finished_file" ] && [ ! -e "$running_file" ] && [ ! -e "$failed_file" ]
+
+    rm -f "$finished_file"
     rmdir "$test_dir"
 }
 
-test_failure_does_not_create_marker() {
+test_controlled_failure_marks_failed() {
     local test_dir
-    local completion_file
+    local running_file
+    local failed_file
 
     test_dir=$(mktemp -d)
-    completion_file="$test_dir/FINISHED"
+    running_file="$test_dir/RUNNING"
+    failed_file="$test_dir/FAILED"
+    touch "$running_file"
 
-    zrb_completion_mark_success "$completion_file" 1
+    zrb_completion_mark_failed "$running_file" "$failed_file"
 
-    [ ! -e "$completion_file" ]
+    [ ! -e "$running_file" ] && [ -f "$failed_file" ]
+
+    rm -f "$failed_file"
+    rmdir "$test_dir"
+}
+
+test_failed_status_does_not_mark_success() {
+    local test_dir
+    local finished_file
+    local running_file
+    local failed_file
+
+    test_dir=$(mktemp -d)
+    finished_file="$test_dir/FINISHED"
+    running_file="$test_dir/RUNNING"
+    failed_file="$test_dir/FAILED"
+    touch "$running_file"
+
+    zrb_completion_mark_success "$finished_file" "$running_file" "$failed_file" 1
+
+    [ ! -e "$finished_file" ] && [ -f "$running_file" ]
+
+    rm -f "$running_file"
     rmdir "$test_dir"
 }
 
 failures=0
 
 for test_name in \
-    test_begin_removes_existing_marker \
-    test_begin_accepts_missing_marker \
-    test_success_creates_marker \
-    test_failure_does_not_create_marker
+    test_begin_marks_running \
+    test_abandoned_run_becomes_failed \
+    test_success_clears_running_and_failed \
+    test_controlled_failure_marks_failed \
+    test_failed_status_does_not_mark_success
 do
     run_test "$test_name" || failures=$((failures + 1))
 done

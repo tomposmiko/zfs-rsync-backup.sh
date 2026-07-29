@@ -39,6 +39,17 @@ source "$ZRB_ROOT/lib/zrb/hooks.sh"
 # shellcheck source=lib/zrb/report.sh
 source "$ZRB_ROOT/lib/zrb/report.sh"
 
+zrb_main_cleanup() {
+    local status=$1
+
+    if [ "${ZRB_CLEANUP_ARMED:-0}" -eq 1 ]; then
+        zrb_completion_mark_failed "$ZRB_RUNNING_FILE" "$ZRB_FAILED_FILE"
+        zrb_lock_remove "$ZRB_ACTIVE_LOCK_FILE"
+    fi
+
+    return "$status"
+}
+
 zrb_main() {
     zrb_config_defaults
     zrb_output_init
@@ -109,6 +120,8 @@ zrb_main() {
     ################## doing rsync ####################
     lockfile="$backup_vault_log/lock"
     file_finished="/$BACKUP_DATASET/$vault/FINISHED"
+    file_running="/$BACKUP_DATASET/$vault/RUNNING"
+    file_failed="/$BACKUP_DATASET/$vault/FAILED"
     report_file="$backup_vault_log/report.txt"
     ssh_config=$(zrb_source_ssh_config "$backup_vault_conf/ssh")
 
@@ -116,8 +129,17 @@ zrb_main() {
     zrb_source_validate_placeholder "$backup_source" "$global_placeholder" "$backup_vault_conf/placeholder" "$vault" "$email_notify_address" || exit 1
     zrb_lock_create "$lockfile" "$(basename "$0")" "$vault" "$email_notify_address" || exit 1
 
+    ZRB_ACTIVE_LOCK_FILE=$lockfile
+    ZRB_RUNNING_FILE=$file_running
+    ZRB_FAILED_FILE=$file_failed
+    ZRB_CLEANUP_ARMED=1
+
+    trap 'zrb_main_cleanup $?' EXIT
+    trap 'exit 130' INT
+    trap 'exit 143' TERM
+
+    zrb_completion_begin "$file_finished" "$file_running" "$file_failed" "$vault" "$email_notify_address"
     zrb_hook_run "$backup_vault_conf/pre-run.sh"
-    zrb_completion_begin "$file_finished" "$vault" "$email_notify_address"
 
     ############################### rsync ################################
     f_say "$C_GREEN VAULT:$C_BLUE $vault"
@@ -137,8 +159,6 @@ zrb_main() {
     zrb_hook_run "$backup_vault_conf/post-run.sh"
     zrb_report_finish "$report_file" "$date_start_epoch" "$QUIET_NOTIFICATIONS"
 
-    zrb_lock_remove "$lockfile"
-
     if [ "$rsync_ret" -ne 0 ]; then
         echo "rsync exited with non-zero status code: $rsync_ret !" | mail -s "$HOSTNAME zrb.sh ERROR: $vault" "$email_notify_address"
         f_say "$C_RED rsync exited with non-zero status code!"
@@ -146,7 +166,11 @@ zrb_main() {
         exit 1
     fi
 
-    zrb_completion_mark_success "$file_finished" "$rsync_ret"
+    zrb_completion_mark_success "$file_finished" "$file_running" "$file_failed" "$rsync_ret"
+    zrb_lock_remove "$lockfile"
+    ZRB_CLEANUP_ARMED=0
+
+    trap - EXIT INT TERM
     ################## doing rsync ####################
 
     for freq_type in $FREQ_LIST; do

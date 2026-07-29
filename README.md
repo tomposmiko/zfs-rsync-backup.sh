@@ -22,6 +22,11 @@ config/ -> per VAULT config files
 data/ -> copied data
 log/ -> logs
 
+Each vault also uses execution-state markers:
+RUNNING -> a backup is currently in progress or the server stopped before cleanup
+FAILED -> the previous controlled or recovered abandoned run failed
+FINISHED -> the previous rsync run completed with an accepted status
+
 #### init
 - local (mounted) directory
 
