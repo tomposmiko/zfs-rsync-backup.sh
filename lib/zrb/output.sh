@@ -7,7 +7,7 @@ zrb_output_init() {
         INTERACTIVE_SESSION=1
     fi
 
-    if [[ ${INTERACTIVE_SESSION:-0} -eq 1 ]]; then
+    if [[ ${INTERACTIVE_SESSION:-0} -eq 1 ]] || [ -t 1 ]; then
         C_GREEN="\e[1;32m"
         C_RED="\e[1;31m"
         C_BLUE="\e[1;34m"
