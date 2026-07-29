@@ -80,4 +80,4 @@ Use `make check` to run Bash syntax validation, ShellCheck, and the complete tes
 
 See `INSTALL.md` for the installation layout.
 
-`rsync-novanished.sh` is a deprecated compatibility wrapper. Current backups use the exit-status policy in `lib/zrb/rsync.sh`.
+`deprecated/rsync-novanished.sh` is retained only for historical compatibility. Current backups use the exit-status policy in `lib/zrb/rsync.sh`.

@@ -21,4 +21,4 @@ Run the complete project validation before installation:
 make check
 ```
 
-`rsync-novanished.sh` remains as a deprecated compatibility wrapper and is not required by the current entrypoints.
+`deprecated/rsync-novanished.sh` is retained only for historical compatibility and is not required by the current entrypoints.
