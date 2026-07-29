@@ -48,6 +48,20 @@ test_missing_command_reports_failure() {
     assert_equal "FAIL: Missing required command: zrb-command-that-does-not-exist" "$output" "missing command result"
 }
 
+test_command_check_reports_all_results() {
+    local output
+    local status
+
+    output=$(zrb_preflight_commands bash zrb-missing-command-one zrb-missing-command-two 2>&1)
+    status=$?
+
+    [[ $output == *"PASS: Required command 'bash'"* ]] || fail "Expected the available command result"
+    [[ $output == *"FAIL: Missing required command: zrb-missing-command-one"* ]] || fail "Expected the first missing command result"
+    [[ $output == *"FAIL: Missing required command: zrb-missing-command-two"* ]] || fail "Expected the second missing command result"
+
+    assert_equal "1" "$status" "aggregated command check status"
+}
+
 test_valid_hook_syntax() {
     local test_dir
     local hook_file
@@ -90,6 +104,7 @@ for test_name in \
     test_pass_is_green \
     test_fail_is_red \
     test_missing_command_reports_failure \
+    test_command_check_reports_all_results \
     test_valid_hook_syntax \
     test_invalid_hook_syntax_fails \
     test_missing_required_file_fails \
