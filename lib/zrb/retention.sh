@@ -77,18 +77,16 @@ zrb_retention_apply() {
     done
 }
 
-zrb_retention_run() {
-    local dataset=$1
-    local prefix=$2
+zrb_retention_load_config() {
+    local period_target_name=$1
+    local minimum_target_name=$2
     local frequency=$3
     local global_config=$4
     local vault_config=$5
-    local vault_name=$6
-    local notify_address=$7
+    local -n period_ref=$period_target_name
+    local -n minimum_ref=$minimum_target_name
     local retention_name="expire_${frequency}"
     local minimum_name="least_keep_count_${frequency}"
-    local retention_period
-    local minimum_count
     local expire_hourly
     local expire_daily
     local expire_weekly
@@ -99,9 +97,6 @@ zrb_retention_run() {
     local least_keep_count_monthly
 
     if [ ! -f "$global_config" ]; then
-        echo "No default expire file: $global_config !" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
-        f_say "$C_RED No default expire file: $global_config !"
-
         return 1
     fi
 
@@ -113,10 +108,33 @@ zrb_retention_run() {
         source "$vault_config"
     fi
 
-    retention_period=${!retention_name:-}
-    minimum_count=${!minimum_name:-}
+    period_ref=${!retention_name:-}
+    minimum_ref=${!minimum_name:-}
 
-    if [ -z "$retention_period" ] || [[ ! $minimum_count =~ ^[0-9]+$ ]]; then
+    if [ -z "$period_ref" ] || [[ ! $minimum_ref =~ ^[0-9]+$ ]]; then
+        return 1
+    fi
+}
+
+zrb_retention_run() {
+    local dataset=$1
+    local prefix=$2
+    local frequency=$3
+    local global_config=$4
+    local vault_config=$5
+    local vault_name=$6
+    local notify_address=$7
+    local retention_period=""
+    local minimum_count=""
+    local config_status
+
+    zrb_retention_load_config retention_period minimum_count "$frequency" "$global_config" "$vault_config"
+    config_status=$?
+
+    if [ "$config_status" -ne 0 ]; then
+        echo "Invalid retention configuration for frequency '$frequency'." | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
+        f_say "$C_RED Invalid retention configuration for frequency '$frequency'."
+
         return 1
     fi
 

@@ -52,6 +52,12 @@ $ zrb-client.sh --public-key-file /path/to/backup.pub
 #### manual running
 $ zrb.sh -v VAULT
 
+#### preflight
+
+Validate a vault without running hooks, rsync, snapshots, retention, locks, reports, or state-marker changes:
+
+$ zrb.sh --check -v VAULT
+
 #### expiring
 - expire only:
 

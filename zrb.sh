@@ -50,6 +50,9 @@ source "$ZRB_ROOT/lib/zrb/hooks.sh"
 # shellcheck source=lib/zrb/report.sh
 source "$ZRB_ROOT/lib/zrb/report.sh"
 
+# shellcheck source=lib/zrb/preflight.sh
+source "$ZRB_ROOT/lib/zrb/preflight.sh"
+
 zrb_main_cleanup() {
     local status=$1
 
@@ -62,14 +65,22 @@ zrb_main_cleanup() {
 }
 
 zrb_main() {
+    local config_status
+
     zrb_config_defaults
     zrb_output_init
 
     f_process_args "$@"
 
     ################# validate global config directory #####################
-    if ( ! zrb_config_set_global_paths ); then
-        echo "configdir does not start with /" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
+    zrb_config_set_global_paths
+    config_status=$?
+
+    if [ "$config_status" -ne 0 ]; then
+        if [ "$CHECK_ONLY" -eq 0 ]; then
+            echo "configdir does not start with /" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
+        fi
+
         f_say "$C_RED configdir does not start with /"
 
         exit 1
@@ -83,6 +94,11 @@ zrb_main() {
 
     vault_root="/$BACKUP_DATASET/$vault"
     vault_dataset="$BACKUP_DATASET/$vault"
+    operation_notify_address=$email_notify_address
+
+    if [ "$CHECK_ONLY" -eq 1 ]; then
+        operation_notify_address=""
+    fi
 
     if [ -n "${data_source:-}" ]; then
         zrb_vault_create "$BACKUP_DATASET" "$vault" "$data_source" || exit 1
@@ -96,13 +112,13 @@ zrb_main() {
         exit 0
     fi
 
-    zrb_vault_validate "$vault_dataset" "$vault_root" "$backup_vault_conf" "$backup_vault_dest" "$backup_vault_log" "$vault" "$email_notify_address" || exit 1
+    zrb_vault_validate "$vault_dataset" "$vault_root" "$backup_vault_conf" "$backup_vault_dest" "$backup_vault_log" "$vault" "$operation_notify_address" || exit 1
 
     if ( zrb_vault_is_disabled "$backup_vault_conf" ); then
         exit 0
     fi
 
-    zrb_vault_load_source backup_source "$backup_vault_conf" "$vault" "$email_notify_address" || exit 1
+    zrb_vault_load_source backup_source "$backup_vault_conf" "$vault" "$operation_notify_address" || exit 1
     export backup_source
 
     rsync_exclude_param=""
@@ -111,6 +127,13 @@ zrb_main() {
     zrb_vault_resolve_excludes rsync_exclude_param rsync_exclude_file "${backup_exclude_param:-}" "$backup_vault_conf" || exit 1
 
     zrb_vault_add_notify_address email_notify_address "$backup_vault_conf" || exit 1
+    ssh_config=$(zrb_source_ssh_config "$backup_vault_conf/ssh")
+
+    if [ "$CHECK_ONLY" -eq 1 ]; then
+        zrb_preflight_run "$backup_source" "$ssh_config" "$global_placeholder" "$backup_vault_conf/placeholder" "$global_exclude" "${backup_exclude_param:-}" "$backup_vault_log" "$backup_vault_conf" "$expire" "$FREQ_LIST" "$global_expire" || exit 1
+
+        exit 0
+    fi
 
     if ( zrb_retention_is_only_mode "$expire" ); then
         for freq_type in $FREQ_LIST; do
@@ -134,7 +157,6 @@ zrb_main() {
     file_running="/$BACKUP_DATASET/$vault/RUNNING"
     file_failed="/$BACKUP_DATASET/$vault/FAILED"
     report_file="$backup_vault_log/report.txt"
-    ssh_config=$(zrb_source_ssh_config "$backup_vault_conf/ssh")
 
     zrb_source_check_remote_access "$backup_source" "$ssh_config" "$vault" "$email_notify_address" || exit 1
     zrb_source_validate_placeholder "$backup_source" "$global_placeholder" "$backup_vault_conf/placeholder" "$vault" "$email_notify_address" || exit 1

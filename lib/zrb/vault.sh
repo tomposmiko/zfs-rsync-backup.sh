@@ -1,6 +1,18 @@
 #!/bin/bash
 # shellcheck disable=SC2034 # Nameref assignments provide outputs to callers.
 
+zrb_vault_report_error() {
+    local message=$1
+    local vault_name=$2
+    local notify_address=$3
+
+    if [ -n "$notify_address" ]; then
+        echo "$message" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
+    fi
+
+    f_say "$C_RED $message"
+}
+
 zrb_vault_create() {
     local backup_dataset=$1
     local vault_name=$2
@@ -77,36 +89,31 @@ zrb_vault_validate() {
     local notify_address=$7
 
     if ( ! zfs list -s name "$dataset_name" > /dev/null 2>&1 ); then
-        echo "Non-existent dataset for vault: $dataset_name !" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
-        f_say "$C_RED Non-existent dataset for vault: $dataset_name !"
+        zrb_vault_report_error "Non-existent dataset for vault: $dataset_name !" "$vault_name" "$notify_address"
 
         return 1
     fi
 
     if [ ! -d "$vault_root" ]; then
-        echo "Non-existent vault directory: $vault_root !" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
-        f_say "$C_RED Non-existent vault directory: $vault_root !"
+        zrb_vault_report_error "Non-existent vault directory: $vault_root !" "$vault_name" "$notify_address"
 
         return 1
     fi
 
     if [ ! -d "$vault_config" ]; then
-        echo "Non-existent config directory: $vault_config !" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
-        f_say "$C_RED Non-existent config directory: $vault_config !"
+        zrb_vault_report_error "Non-existent config directory: $vault_config !" "$vault_name" "$notify_address"
 
         return 1
     fi
 
     if [ ! -d "$vault_data" ]; then
-        echo "Non-existent rsync destination directory: $vault_data !" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
-        f_say "$C_RED Non-existent rsync destination directory: $vault_data !"
+        zrb_vault_report_error "Non-existent rsync destination directory: $vault_data !" "$vault_name" "$notify_address"
 
         return 1
     fi
 
     if [ ! -d "$vault_log" ]; then
-        echo "Non-existent rsync destination directory: $vault_log !" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
-        f_say "$C_RED Non-existent rsync destination directory: $vault_log !"
+        zrb_vault_report_error "Non-existent rsync destination directory: $vault_log !" "$vault_name" "$notify_address"
 
         return 1
     fi
@@ -127,8 +134,7 @@ zrb_vault_load_source() {
     local source_file="$vault_config/source"
 
     if [ ! -f "$source_file" ]; then
-        echo "Non-existent source file: $source_file !" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
-        f_say "$C_RED Non-existent source file: $source_file !"
+        zrb_vault_report_error "Non-existent source file: $source_file !" "$vault_name" "$notify_address"
 
         return 1
     fi

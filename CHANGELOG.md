@@ -11,6 +11,7 @@ CHANGELOG
 - Moved the deprecated `rsync-novanished.sh` compatibility wrapper under `deprecated`; current rsync status handling lives in `lib/zrb/rsync.sh`.
 
 ###### Added
+- Added `zrb.sh --check` for non-mutating dependency, configuration, source, SSH, retention, hook, and writability validation.
 - Added `RUNNING`, `FAILED`, and `FINISHED` markers to distinguish active, failed, interrupted, and successful rsync runs.
 - Added controlled-exit cleanup for `EXIT`, `SIGINT`, and `SIGTERM` while preserving stale lock and `RUNNING` evidence after hard crashes.
 - Added exact snapshot-name parsing, minimum retention enforcement, per-vault retention overrides, and explicit `no`, `yes`, and `only` expiration modes.

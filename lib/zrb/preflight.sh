@@ -1,0 +1,112 @@
+#!/bin/bash
+# shellcheck disable=SC2034 # Retention values are populated through nameref validation.
+
+zrb_preflight_commands() {
+    local command_name
+
+    for command_name in "$@"; do
+        if ( ! command -v "$command_name" > /dev/null 2>&1 ); then
+            echo "Missing required command: $command_name"
+
+            return 1
+        fi
+    done
+}
+
+zrb_preflight_readable_file() {
+    local file_path=$1
+    local label=$2
+
+    if [ ! -r "$file_path" ]; then
+        echo "$label is not readable: $file_path"
+
+        return 1
+    fi
+}
+
+zrb_preflight_writable_directory() {
+    local directory_path=$1
+    local label=$2
+
+    if [ ! -d "$directory_path" ] || [ ! -w "$directory_path" ]; then
+        echo "$label is not writable: $directory_path"
+
+        return 1
+    fi
+}
+
+zrb_preflight_hook() {
+    local hook_file=$1
+
+    if [ -f "$hook_file" ]; then
+        bash -n "$hook_file"
+    fi
+}
+
+zrb_preflight_retention() {
+    local mode=$1
+    local frequency_list=$2
+    local global_config=$3
+    local vault_config=$4
+    local frequency
+    local retention_period
+    local minimum_count
+
+    if [ "$mode" == "no" ]; then
+        return 0
+    fi
+
+    for frequency in $frequency_list; do
+        retention_period=""
+        minimum_count=""
+
+        if ( ! zrb_retention_load_config retention_period minimum_count "$frequency" "$global_config" "$vault_config" ); then
+            echo "Invalid retention configuration for frequency '$frequency'."
+
+            return 1
+        fi
+    done
+}
+
+zrb_preflight_run() {
+    local source_path=$1
+    local ssh_config=$2
+    local global_placeholder_file=$3
+    local vault_placeholder_file=$4
+    local global_exclude_file=$5
+    local parameter_exclude_file=$6
+    local vault_log=$7
+    local vault_config=$8
+    local expiration_mode=$9
+    local frequency_list=${10}
+    local global_retention_file=${11}
+    local placeholder_path=""
+
+    zrb_preflight_commands bash date grep mail ps rsync ssh zfs || return 1
+    zrb_preflight_readable_file "$global_exclude_file" "Global exclude file" || return 1
+
+    if [ -n "$parameter_exclude_file" ]; then
+        zrb_preflight_readable_file "$parameter_exclude_file" "Exclude file" || return 1
+    fi
+
+    zrb_preflight_writable_directory "$vault_log" "Vault log directory" || return 1
+    zrb_source_placeholder_path placeholder_path "$source_path" "$global_placeholder_file" "$vault_placeholder_file" || return 1
+
+    if [ -n "$placeholder_path" ] && [ ! -e "$placeholder_path" ]; then
+        echo "Placeholder does not exist: $placeholder_path"
+
+        return 1
+    fi
+
+    if ( ! zrb_source_remote_accessible "$source_path" "$ssh_config" ); then
+        echo "Remote source is not accessible: $source_path"
+
+        return 1
+    fi
+
+    zrb_preflight_hook "$vault_config/pre-run.sh" || return 1
+    zrb_preflight_hook "$vault_config/post-run.sh" || return 1
+    zrb_preflight_retention "$expiration_mode" "$frequency_list" "$global_retention_file" "$vault_config/expire" || return 1
+
+    echo "Preflight check passed."
+}

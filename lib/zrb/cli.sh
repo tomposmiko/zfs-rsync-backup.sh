@@ -30,6 +30,7 @@ zrb_cli_usage() {
     echo "  -e|--expire <goal>        yes | [no] | only"
     echo "  -a|--add-vault <source>   create vault and add source"
     echo "  -l|--list <vault>         display vault"
+    echo "  -c|--check                validate configuration without running a backup"
     echo "  -q|--quiet"
     echo
 }
@@ -91,6 +92,10 @@ zrb_cli_parse() {
                 zrb_cli_require_value "$parameter" || return
                 vault_to_list=$parameter
                 shift 2
+                ;;
+            -c|--check)
+                CHECK_ONLY=1
+                shift
                 ;;
             -q|--quiet)
                 QUIET_NOTIFICATIONS=1

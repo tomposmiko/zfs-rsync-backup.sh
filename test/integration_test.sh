@@ -45,6 +45,15 @@ test_complete_local_backup() {
     echo "$source_dir" > "$vault_root/config/source"
     echo "payload" > "$source_dir/file.txt"
 
+    ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$sbin_dir/zrb.sh" --check -g "$config_dir" -v photos > "$test_dir/check.out"
+
+    if [ -f "$vault_root/FINISHED" ] && [ ! -e "$vault_root/RUNNING" ] && [ ! -e "$vault_root/FAILED" ] && [ ! -e "$vault_root/log/lock" ] && [ ! -s "$zfs_log" ] && ( grep -Fq "Preflight check passed." "$test_dir/check.out" ); then
+        :
+    else
+        cat "$test_dir/check.out"
+        test_status=1
+    fi
+
     ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$sbin_dir/zrb.sh" -g "$config_dir" -v photos > "$test_dir/zrb.out"
 
     [ -f "$vault_root/FINISHED" ] &&

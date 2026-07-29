@@ -12,6 +12,7 @@ zrb_config_defaults() {
     expire="no"
     QUIET_NOTIFICATIONS=1
     INTERACTIVE_SESSION=0
+    CHECK_ONLY=0
     email_notify_address="root"
 
     export PATH
