@@ -27,6 +27,12 @@ source "$ZRB_ROOT/lib/zrb/rsync.sh"
 # shellcheck source=lib/zrb/vault.sh
 source "$ZRB_ROOT/lib/zrb/vault.sh"
 
+# shellcheck source=lib/zrb/snapshot.sh
+source "$ZRB_ROOT/lib/zrb/snapshot.sh"
+
+# shellcheck source=lib/zrb/retention.sh
+source "$ZRB_ROOT/lib/zrb/retention.sh"
+
 zrb_main() {
     zrb_config_defaults
     zrb_output_init
@@ -111,63 +117,13 @@ zrb_main() {
     #fi
     ################ pre-run script ######################
 
-    f_expire() {
-        if [ -f "$global_expire" ]; then
-            # shellcheck disable=SC1090
-            . "$global_expire"
-        else
-            echo "No default expire file: $global_expire !" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
-            f_say "$C_RED No default expire file: $global_expire !"
-
-            exit 1
-        fi
-
-        # shellcheck disable=SC1090,SC1091
-        test -f "$backup_vault_conf/expire" && . "$backup_vault_conf/expire"
-
-        expire_rule="expire_${freq_type}"
-        expire_limit=$(date "+%s" -d "${!expire_rule} ago")
-
-        snap_list=$(mktemp /tmp/snap_list.XXXXXX)
-        zfs list -t snap -r -H "$BACKUP_DATASET/$vault" -o name -s name |cut -f2 -d@ > "${snap_list}"
-        snap_all_num=$(grep -c "${SNAPSHOT_PREFIX}_${freq_type}_" "${snap_list}")
-
-        # default is $least_keep_count
-        snap_min_count="least_keep_count_${freq_type}"
-        snap_count=${!snap_min_count}
-
-        # shellcheck disable=SC2013 disable=SC2002
-        for snap_name in $(cat "$snap_list" | grep "$freq_type"); do ##CAT ABUSE
-            # shellcheck disable=SC2001
-            snap_date=$(echo "$snap_name" | sed "s,\(${SNAPSHOT_PREFIX}\)_\(${freq_type}\)_\([0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]\)--\([0-9][0-9]\)-\([0-9][0-9]\),\3 \4:\5,")
-            snap_epoch=$(date "+%s" -d "$snap_date")
-
-            if [ "$snap_epoch" -lt "$expire_limit" ]; then
-                if [ "$snap_count" -lt "$snap_all_num" ]; then
-                    snap_count=$(("$snap_count"+1))
-                    f_say "$C_GREEN  ${BACKUP_DATASET}/${vault}@${snap_name}"
-                    zfs destroy "${BACKUP_DATASET}/${vault}@${snap_name}"
-                else
-                    break
-                fi
-            fi
-        done
-
-        rm -f "$snap_list"
-    }
-
-
-    ################ expiring only ##################
-    if [ "$expire" == only ]; then
+    if ( zrb_retention_is_only_mode "$expire" ); then
         for freq_type in $FREQ_LIST; do
-            f_expire
+            zrb_retention_run "$vault_dataset" "$SNAPSHOT_PREFIX" "$freq_type" "$global_expire" "$backup_vault_conf/expire" "$vault" "$email_notify_address" || exit 1
         done
 
         exit 0
     fi
-    ################ expiring only ##################
-
-
     # remove old log file
     rm -f "$backup_vault_log/rsync.log"
 
@@ -257,15 +213,13 @@ zrb_main() {
     zrb_completion_mark_success "$file_finished" "$rsync_ret"
     ################## doing rsync ####################
 
-    ################# doing snapshot & expiring ##############
     for freq_type in $FREQ_LIST; do
-        zfs snap "$BACKUP_DATASET/$vault@${SNAPSHOT_PREFIX}_${freq_type}_${ZRB_RUN_DATE}"
+        zrb_snapshot_create "$vault_dataset" "$SNAPSHOT_PREFIX" "$freq_type" "$ZRB_RUN_DATE" || exit 1
 
-        if [ "$expire" == yes ]; then
-            f_expire
+        if ( zrb_retention_runs_after_snapshot "$expire" ); then
+            zrb_retention_run "$vault_dataset" "$SNAPSHOT_PREFIX" "$freq_type" "$global_expire" "$backup_vault_conf/expire" "$vault" "$email_notify_address" || exit 1
         fi
     done
-    ################# doing snapshot & expiring ##############
 
     echo
 }
