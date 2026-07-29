@@ -1,6 +1,17 @@
 #!/bin/bash
 
-ZRB_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+ZRB_SCRIPT_PATH=${BASH_SOURCE[0]}
+
+while [ -L "$ZRB_SCRIPT_PATH" ]; do
+    ZRB_SCRIPT_DIR=$(cd -P "$(dirname "$ZRB_SCRIPT_PATH")" && pwd)
+    ZRB_SCRIPT_PATH=$(readlink "$ZRB_SCRIPT_PATH")
+
+    if [[ $ZRB_SCRIPT_PATH != /* ]]; then
+        ZRB_SCRIPT_PATH="$ZRB_SCRIPT_DIR/$ZRB_SCRIPT_PATH"
+    fi
+done
+
+ZRB_ROOT=$(cd -P "$(dirname "$ZRB_SCRIPT_PATH")" && pwd)
 
 # shellcheck source=lib/zrb/client.sh
 source "$ZRB_ROOT/lib/zrb/client.sh"

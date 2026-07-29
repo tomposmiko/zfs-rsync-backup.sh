@@ -22,6 +22,7 @@ test_complete_local_backup() {
     local stub_dir
     local config_dir
     local source_dir
+    local sbin_dir
     local dataset_name
     local vault_root
     local zfs_log
@@ -31,18 +32,20 @@ test_complete_local_backup() {
     stub_dir="$test_dir/bin"
     config_dir="$test_dir/config"
     source_dir="$test_dir/source"
+    sbin_dir="$test_dir/sbin"
     dataset_name="${test_dir#/}/pool/zrb"
     vault_root="/$dataset_name/photos"
     zfs_log="$test_dir/zfs.log"
 
-    mkdir -p "$stub_dir" "$config_dir" "$source_dir" "$vault_root/config" "$vault_root/data" "$vault_root/log"
+    mkdir -p "$stub_dir" "$config_dir" "$source_dir" "$sbin_dir" "$vault_root/config" "$vault_root/data" "$vault_root/log"
     create_stub_commands "$stub_dir"
+    ln -s "$TEST_ROOT/zrb.sh" "$sbin_dir/zrb.sh"
     echo "$dataset_name" > "$config_dir/backup_dataset"
     touch "$config_dir/exclude" "$vault_root/FINISHED" "$zfs_log"
     echo "$source_dir" > "$vault_root/config/source"
     echo "payload" > "$source_dir/file.txt"
 
-    ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$TEST_ROOT/zrb.sh" -g "$config_dir" -v photos > "$test_dir/zrb.out"
+    ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$sbin_dir/zrb.sh" -g "$config_dir" -v photos > "$test_dir/zrb.out"
 
     [ -f "$vault_root/FINISHED" ] &&
         [ ! -e "$vault_root/RUNNING" ] &&
