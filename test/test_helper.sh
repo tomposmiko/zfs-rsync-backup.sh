@@ -19,6 +19,31 @@ assert_equal() {
     [[ $actual == "$expected" ]] || fail "$message: expected '$expected', got '$actual'"
 }
 
+assert_file_exists() {
+    local file_path=$1
+
+    [ -f "$file_path" ] || fail "Expected file to exist: $file_path"
+}
+
+assert_path_missing() {
+    local path=$1
+
+    [ ! -e "$path" ] || fail "Expected path to be absent: $path"
+}
+
+assert_file_empty() {
+    local file_path=$1
+
+    [ ! -s "$file_path" ] || fail "Expected file to be empty: $file_path"
+}
+
+assert_file_contains() {
+    local file_path=$1
+    local expected=$2
+
+    ( grep -Fq "$expected" "$file_path" ) || fail "Expected '$file_path' to contain: $expected"
+}
+
 run_test() {
     local name=$1
 

@@ -47,20 +47,27 @@ test_complete_local_backup() {
 
     ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$sbin_dir/zrb.sh" --check -g "$config_dir" -v photos > "$test_dir/check.out"
 
-    if [ -f "$vault_root/FINISHED" ] && [ ! -e "$vault_root/RUNNING" ] && [ ! -e "$vault_root/FAILED" ] && [ ! -e "$vault_root/log/lock" ] && [ ! -s "$zfs_log" ] && ( grep -Fq "PASS: required command 'zfs'" "$test_dir/check.out" ) && ( grep -Fq "PASS: Global exclude file is readable: $config_dir/exclude" "$test_dir/check.out" ) && ( grep -Fq "PASS: Vault log directory is writable: $vault_root/log" "$test_dir/check.out" ) && ( grep -Fq "PASS: local source and placeholder exist: $source_dir" "$test_dir/check.out" ) && ( grep -Fq "PASS: SSH validation is not required for a local source" "$test_dir/check.out" ) && ( grep -Fq "PASS: retention validation is not required for mode 'no'" "$test_dir/check.out" ) && ( grep -Fq "Preflight check passed." "$test_dir/check.out" ); then
-        :
-    else
-        cat "$test_dir/check.out"
-        test_status=1
-    fi
+    assert_file_exists "$vault_root/FINISHED" || test_status=1
+    assert_path_missing "$vault_root/RUNNING" || test_status=1
+    assert_path_missing "$vault_root/FAILED" || test_status=1
+    assert_path_missing "$vault_root/log/lock" || test_status=1
+    assert_file_empty "$zfs_log" || test_status=1
+
+    assert_file_contains "$test_dir/check.out" "PASS: Required command 'zfs'" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Global exclude file is readable: $config_dir/exclude" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Vault log directory is writable: $vault_root/log" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Local source and placeholder exist: $source_dir" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: SSH validation is not required for a local source" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Retention validation is not required for mode 'no'" || test_status=1
+    assert_file_contains "$test_dir/check.out" "Preflight check passed." || test_status=1
 
     ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$sbin_dir/zrb.sh" -g "$config_dir" -v photos > "$test_dir/zrb.out"
 
-    [ -f "$vault_root/FINISHED" ] &&
-        [ ! -e "$vault_root/RUNNING" ] &&
-        [ ! -e "$vault_root/FAILED" ] &&
-        [ ! -e "$vault_root/log/lock" ] &&
-        grep -Fq "$dataset_name/photos@zrb_daily_" "$zfs_log" || test_status=1
+    assert_file_exists "$vault_root/FINISHED" || test_status=1
+    assert_path_missing "$vault_root/RUNNING" || test_status=1
+    assert_path_missing "$vault_root/FAILED" || test_status=1
+    assert_path_missing "$vault_root/log/lock" || test_status=1
+    assert_file_contains "$zfs_log" "$dataset_name/photos@zrb_daily_" || test_status=1
 
     rm -rf "$test_dir"
 
