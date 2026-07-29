@@ -34,7 +34,7 @@ test_complete_local_backup() {
     source_dir="$test_dir/source"
     sbin_dir="$test_dir/sbin"
     dataset_name="${test_dir#/}/pool/zrb"
-    vault_root="/$dataset_name/photos"
+    vault_root="/$dataset_name/Projects/SZB"
     zfs_log="$test_dir/zfs.log"
 
     mkdir -p "$stub_dir" "$config_dir" "$source_dir" "$sbin_dir" "$vault_root/config" "$vault_root/data" "$vault_root/log"
@@ -45,7 +45,7 @@ test_complete_local_backup() {
     echo "$source_dir" > "$vault_root/config/source"
     echo "payload" > "$source_dir/file.txt"
 
-    ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$sbin_dir/zrb.sh" --check -g "$config_dir" -v photos > "$test_dir/check.out"
+    ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$sbin_dir/zrb.sh" --check -g "$config_dir" -v Projects/SZB > "$test_dir/check.out"
 
     assert_file_exists "$vault_root/FINISHED" || test_status=1
     assert_path_missing "$vault_root/RUNNING" || test_status=1
@@ -55,7 +55,7 @@ test_complete_local_backup() {
 
     assert_file_contains "$test_dir/check.out" "PASS: Required command 'zfs'" || test_status=1
     assert_file_contains "$test_dir/check.out" "PASS: Backup dataset exists and is accessible: $dataset_name" || test_status=1
-    assert_file_contains "$test_dir/check.out" "PASS: Vault dataset exists and is accessible: $dataset_name/photos" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Vault dataset exists and is accessible: $dataset_name/Projects/SZB" || test_status=1
     assert_file_contains "$test_dir/check.out" "PASS: Vault configuration directory exists: $vault_root/config" || test_status=1
     assert_file_contains "$test_dir/check.out" "PASS: Vault destination directory exists: $vault_root/data" || test_status=1
     assert_file_contains "$test_dir/check.out" "PASS: Vault source file is readable: $vault_root/config/source" || test_status=1
@@ -67,13 +67,58 @@ test_complete_local_backup() {
     assert_file_contains "$test_dir/check.out" "PASS: Retention validation is not required for mode 'no'" || test_status=1
     assert_file_contains "$test_dir/check.out" "PASS: Preflight check passed:" || test_status=1
 
-    ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$sbin_dir/zrb.sh" -g "$config_dir" -v photos > "$test_dir/zrb.out"
+    ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$sbin_dir/zrb.sh" -g "$config_dir" -v Projects/SZB > "$test_dir/zrb.out"
 
     assert_file_exists "$vault_root/FINISHED" || test_status=1
     assert_path_missing "$vault_root/RUNNING" || test_status=1
     assert_path_missing "$vault_root/FAILED" || test_status=1
     assert_path_missing "$vault_root/log/lock" || test_status=1
-    assert_file_contains "$zfs_log" "$dataset_name/photos@zrb_daily_" || test_status=1
+    assert_file_contains "$zfs_log" "$dataset_name/Projects/SZB@zrb_daily_" || test_status=1
+
+    rm -rf "$test_dir"
+
+    return "$test_status"
+}
+
+test_preflight_reports_multiple_failures() {
+    local test_dir
+    local stub_dir
+    local config_dir
+    local sbin_dir
+    local dataset_name
+    local vault_root
+    local zfs_log
+    local check_status
+    local test_status=0
+
+    test_dir=$(mktemp -d)
+    stub_dir="$test_dir/bin"
+    config_dir="$test_dir/config"
+    sbin_dir="$test_dir/sbin"
+    dataset_name="${test_dir#/}/pool/zrb"
+    vault_root="/$dataset_name/Projects/SZB"
+    zfs_log="$test_dir/zfs.log"
+
+    mkdir -p "$stub_dir" "$config_dir" "$sbin_dir" "$vault_root/config" "$vault_root/data" "$vault_root/log"
+    create_stub_commands "$stub_dir"
+    ln -s "$TEST_ROOT/zrb.sh" "$sbin_dir/zrb.sh"
+    echo "$dataset_name" > "$config_dir/backup_dataset"
+    echo "invalid-address" > "$vault_root/config/notify"
+    touch "$vault_root/config/exclude" "$zfs_log"
+
+    ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$sbin_dir/zrb.sh" --check -g "$config_dir" -x "$test_dir/missing-exclude" -v Projects/SZB > "$test_dir/check.out" 2>&1
+    check_status=$?
+
+    assert_equal "1" "$check_status" "failed preflight status" || test_status=1
+    assert_file_contains "$test_dir/check.out" "FAIL: Global exclude file is not readable: $config_dir/exclude" || test_status=1
+    assert_file_contains "$test_dir/check.out" "FAIL: Command-line exclude file is not readable: $test_dir/missing-exclude" || test_status=1
+    assert_file_contains "$test_dir/check.out" "FAIL: Command-line and vault exclude files are mutually exclusive" || test_status=1
+    assert_file_contains "$test_dir/check.out" "FAIL: Vault notification address is invalid: invalid-address" || test_status=1
+    assert_file_contains "$test_dir/check.out" "FAIL: Vault source file is not readable: $vault_root/config/source" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Hook is not configured: $vault_root/config/pre-run.sh" || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Retention validation is not required for mode 'no'" || test_status=1
+    assert_file_contains "$test_dir/check.out" "FAIL: Preflight check failed: 19 checks passed, 5 checks failed." || test_status=1
+    assert_file_empty "$zfs_log" || test_status=1
 
     rm -rf "$test_dir"
 
@@ -81,3 +126,4 @@ test_complete_local_backup() {
 }
 
 run_test test_complete_local_backup
+run_test test_preflight_reports_multiple_failures

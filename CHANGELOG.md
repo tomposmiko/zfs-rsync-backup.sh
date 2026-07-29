@@ -11,14 +11,14 @@ CHANGELOG
 - Moved the deprecated `rsync-novanished.sh` compatibility wrapper under `deprecated`; current rsync status handling lives in `lib/zrb/rsync.sh`.
 
 ###### Added
-- Added `zrb.sh --check` for non-mutating dependency, configuration, source, SSH, retention, hook, and writability validation, with a `PASS:` line for every successful check.
+- Added `zrb.sh --check` for non-mutating command, dataset, vault-directory, source, exclude, notification, SSH, retention, hook, and writability validation. It reports every safe check with colorized `PASS` or `FAIL` status words and finishes with aggregate counts.
 - Added `RUNNING`, `FAILED`, and `FINISHED` markers to distinguish active, failed, interrupted, and successful rsync runs.
 - Added controlled-exit cleanup for `EXIT`, `SIGINT`, and `SIGTERM` while preserving stale lock and `RUNNING` evidence after hard crashes.
 - Added exact snapshot-name parsing, minimum retention enforcement, per-vault retention overrides, and explicit `no`, `yes`, and `only` expiration modes.
 - Added secure temporary-file handling for parallel vault lists and sudoers generation.
 - Added `--user`, `--public-key-file`, and `--dry-run` options to `zrb-client.sh`.
 - Added `STYLE.md`, `INSTALL.md`, and a `make check` workflow.
-- Added unit and stubbed end-to-end integration coverage for the active project.
+- Added unit and stubbed end-to-end integration coverage for the active project, including nested vault names and aggregated preflight failures.
 
 ###### Fixed
 - Fixed library discovery when entrypoints are invoked through symbolic links such as `/usr/local/sbin/zrb.sh`.

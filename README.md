@@ -58,6 +58,20 @@ Validate a vault without running hooks, rsync, snapshots, retention, locks, repo
 
 $ zrb.sh --check -v VAULT
 
+The preflight report checks required commands, backup and vault datasets, vault directories, source configuration, exclude files, notification addresses, log writability, local placeholders or remote SSH access, hook syntax, and retention configuration. It continues through all safe checks so one run reports every detected problem.
+
+Each result starts with a green `PASS` or red `FAIL`. Only the status word is colorized. The final line summarizes the number of passed and failed checks:
+
+```text
+PASS: Preflight check passed: 26 checks passed.
+```
+
+or:
+
+```text
+FAIL: Preflight check failed: 22 checks passed, 3 checks failed.
+```
+
 #### expiring
 - expire only:
 

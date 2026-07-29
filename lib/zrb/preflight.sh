@@ -103,10 +103,14 @@ zrb_preflight_source() {
     local target_name=$1
     local source_file=$2
     local -n source_ref=$target_name
+    local source_file_status
 
     source_ref=""
 
-    if ( ! zrb_preflight_readable_file "$source_file" "Vault source file" ); then
+    zrb_preflight_readable_file "$source_file" "Vault source file"
+    source_file_status=$?
+
+    if [ "$source_file_status" -ne 0 ]; then
         return 1
     fi
 
