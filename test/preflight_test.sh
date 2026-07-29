@@ -23,7 +23,7 @@ test_pass_is_green() {
 
     output=$(zrb_preflight_pass "Check passed")
 
-    assert_equal $'\e[1;32mPASS: Check passed\e[0m' "$output" "green preflight result"
+    assert_equal $'\e[1;32mPASS\e[0m: Check passed' "$output" "green preflight result"
 }
 
 test_fail_is_red() {
@@ -34,7 +34,7 @@ test_fail_is_red() {
 
     output=$(zrb_preflight_fail "Check failed")
 
-    assert_equal $'\e[1;31mFAIL: Check failed\e[0m' "$output" "red preflight result"
+    assert_equal $'\e[1;31mFAIL\e[0m: Check failed' "$output" "red preflight result"
 }
 
 test_missing_command_reports_failure() {

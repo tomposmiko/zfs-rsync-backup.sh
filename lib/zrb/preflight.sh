@@ -2,11 +2,11 @@
 # shellcheck disable=SC2034 # Retention values are populated through nameref validation.
 
 zrb_preflight_pass() {
-    printf '%b%s%b\n' "${C_GREEN:-}" "PASS: $1" "${C_NOCOLOR:-}"
+    printf '%bPASS%b: %s\n' "${C_GREEN:-}" "${C_NOCOLOR:-}" "$1"
 }
 
 zrb_preflight_fail() {
-    printf '%b%s%b\n' "${C_RED:-}" "FAIL: $1" "${C_NOCOLOR:-}"
+    printf '%bFAIL%b: %s\n' "${C_RED:-}" "${C_NOCOLOR:-}" "$1"
 }
 
 zrb_preflight_commands() {
