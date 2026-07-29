@@ -24,6 +24,9 @@ source "$ZRB_ROOT/lib/zrb/source.sh"
 # shellcheck source=lib/zrb/rsync.sh
 source "$ZRB_ROOT/lib/zrb/rsync.sh"
 
+# shellcheck source=lib/zrb/vault.sh
+source "$ZRB_ROOT/lib/zrb/vault.sh"
+
 zrb_main() {
     zrb_config_defaults
     zrb_output_init
@@ -53,172 +56,36 @@ zrb_main() {
 
     f_check_email_notify_address
 
-    ########################## initializing vault #########################
-    if [ -n "$data_source" ]; then
-        # check for directory of vault
-        if [ -d "/$BACKUP_DATASET/$vault" ]; then
-            f_say "$C_RED Cannot add vault!"
-            f_say "$C_RED Existing directory: /$BACKUP_DATASET/$vault !"
+    vault_root="/$BACKUP_DATASET/$vault"
+    vault_dataset="$BACKUP_DATASET/$vault"
 
-            exit 1
-        fi
-
-        # check for zfs dataset of vault
-        if ( zfs list -s name "$BACKUP_DATASET/$vault" > /dev/null 2>&1 ); then
-            f_say "$C_RED Cannot add vault!"
-            f_say "$C_RED Existing dataset: $BACKUP_DATASET/$vault !"
-
-            exit 1
-        fi
-
-        if ( zfs create "$BACKUP_DATASET/$vault" ); then
-            mkdir "$backup_vault_conf"
-            mkdir "$backup_vault_dest"
-            mkdir "$backup_vault_log"
-            echo "$data_source" > "$backup_vault_conf/source"
-        else
-            f_say "$C_RED Cannot create dataset:"
-            f_say "$C_RED $ zfs create $BACKUP_DATASET/$vault"
-
-            exit 1
-        fi
-
-        echo
-        zfs list -s name "$BACKUP_DATASET/$vault"
-        echo
-        f_say "$C_GREEN Data source: $data_source"
-        echo
+    if [ -n "${data_source:-}" ]; then
+        zrb_vault_create "$BACKUP_DATASET" "$vault" "$data_source" || exit 1
 
         exit 0
     fi
-    ########################## initializing vault #########################
 
-
-    ################## snapshots listing of vault #######################
-    if [ -n "$vault_to_list" ]; then
-        # if the parameter is full path
-        if ( echo "$vault_to_list" | grep -q "^$BACKUP_DATASET" ); then
-            zfs list -s name -t all -r "$vault_to_list"
-        else
-            # parameter is NOT full path, must be a matched string, can be multiple paths
-            fs_to_list=$(zfs list -o name -s name | grep "^$BACKUP_DATASET/.*$vault_to_list")
-
-            if [ "$fs_to_list" == "$BACKUP_DATASET" ]; then
-                echo "No matching filesystem!" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
-                f_say "$C_RED No matching filesystem!"
-            else
-                zfs list -s name -t all -r "$fs_to_list"
-            fi
-        fi
+    if [ -n "${vault_to_list:-}" ]; then
+        zrb_vault_list "$BACKUP_DATASET" "$vault_to_list" "$email_notify_address" || exit 1
 
         exit 0
     fi
-    ################## snapshots listing of vault #######################
 
+    zrb_vault_validate "$vault_dataset" "$vault_root" "$backup_vault_conf" "$backup_vault_dest" "$backup_vault_log" "$vault" "$email_notify_address" || exit 1
 
-    ################## checks for entries in vault ######################
-    # check for zfs dataset of vault
-    if ( ! zfs list -s name "$BACKUP_DATASET/$vault" > /dev/null 2>&1 ); then
-        echo "Non-existent dataset for vault: $BACKUP_DATASET/$vault !" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
-        f_say "$C_RED Non-existent dataset for vault: $BACKUP_DATASET/$vault !"
-
-        exit 1
-    fi
-
-    # check for directory of vault
-    if [ ! -d "/$BACKUP_DATASET/$vault" ]; then
-        echo "Non-existent vault directory: /$BACKUP_DATASET/$vault !" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
-        f_say "$C_RED Non-existent vault directory: /$BACKUP_DATASET/$vault !"
-
-        exit 1
-    fi
-
-    # check for config directory of vault
-    if [ ! -d "$backup_vault_conf" ]; then
-        echo "Non-existent config directory: $backup_vault_conf !" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
-        f_say "$C_RED Non-existent config directory: $backup_vault_conf !"
-
-        exit 1
-    fi
-
-    # check for data directory of vault
-    if [ ! -d "$backup_vault_dest" ]; then
-        echo "Non-existent rsync destination directory: $backup_vault_dest !" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
-        f_say "$C_RED Non-existent rsync destination directory: $backup_vault_dest !"
-
-        exit 1
-    fi
-
-    # check for log directory of vault
-    if [ ! -d "$backup_vault_log" ]; then
-        echo "Non-existent rsync destination directory: $backup_vault_log !" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
-        f_say "$C_RED Non-existent rsync destination directory: $backup_vault_log !"
-
-        exit 1
-    fi
-    ################## checks for entries in vault ######################
-
-
-    ############## check if backup is disabled for this vault ###################
-    if [ -f "$backup_vault_conf/DISABLE" ]; then
-
+    if ( zrb_vault_is_disabled "$backup_vault_conf" ); then
         exit 0
     fi
-    ############## check if backup is disabled for this vault ###################
 
+    zrb_vault_load_source backup_source "$backup_vault_conf" "$vault" "$email_notify_address" || exit 1
+    export backup_source
 
-    ############## initializing backup source ###############
-    # path of the source
-    # Eg.: /mnt/source/dir
-    #    host:/mnt/source/dir
-    #
-    if [ -f "$backup_vault_conf/source" ]; then
-        backup_source=$(cat "$backup_vault_conf/source")
-        export backup_source
-    else
-        echo "Non-existent source file: $backup_vault_conf/source !" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
-        f_say "$C_RED Non-existent source file: $backup_vault_conf/source !"
+    rsync_exclude_param=""
+    rsync_exclude_file=""
 
-        exit 1
-    fi
-    ############## initializing backup source ###############
+    zrb_vault_resolve_excludes rsync_exclude_param rsync_exclude_file "${backup_exclude_param:-}" "$backup_vault_conf" || exit 1
 
-    ############### exclude file for rsync ##################
-    if [ -n "$backup_exclude_param" ]; then
-        rsync_exclude_param="--exclude-from=$backup_exclude_param"
-    fi
-    ############### exclude file for rsync ##################
-
-
-    ################ vault exclude file ######################
-    if [ -f "$backup_vault_conf/exclude" ]; then
-        if [ -n "$backup_exclude_param" ]; then
-            f_say "$C_RED The switch '--exclude-file' and the 'vault specific exclude' file are mutually exclusive!"
-            f_say "$C_RED switch: $backup_exclude_param"
-            f_say "$C_RED exclude file: $backup_vault_conf/exclude"
-
-            exit 1
-        fi
-
-        rsync_exclude_file="--exclude-from=$backup_vault_conf/exclude"
-    fi
-    ################ vault exclude file ######################
-
-    ################ vault notification file ######################
-    if [ -f "$backup_vault_conf/notify" ]; then
-        vault_notify_address=$(cat "$backup_vault_conf/notify")
-
-        if [ -n "$vault_notify_address" ]; then
-            if ( ! echo "$vault_notify_address" | grep -q @ ); then
-                f_say "red $vault_notify_address is not a valid email address"
-
-                exit 1
-            fi
-
-            email_notify_address="$email_notify_address,$vault_notify_address"
-        fi
-    fi
-    ################ vault notification file ######################
+    zrb_vault_add_notify_address email_notify_address "$backup_vault_conf" || exit 1
 
     f_check_placeholder() {
         # check if there is a specific file available to make sure, fs is mounted if its a network share (nfs, samba etc.)
