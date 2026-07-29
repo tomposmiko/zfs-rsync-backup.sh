@@ -1,167 +1,68 @@
 #!/bin/bash
 
-#set -x
+ZRB_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
-# default variables
-export PATH="/root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-export QUIET_NOTIFICATIONS=1
-export INTERACTIVE_SESSION=0
+# shellcheck source=lib/zrb/config.sh
+source "$ZRB_ROOT/lib/zrb/config.sh"
 
-export BACKUP_DATASET="tank/zrb"
-export GLOBAL_CONFIG_DIR="/etc/zrb"
-export GLOBAL_EXCLUDE_RULE="$GLOBAL_CONFIG_DIR/exclude"
-export GLOBAL_EXPIRE_RULE="$GLOBAL_CONFIG_DIR/expire"
-export FREQ_LIST="daily"
-export PARALLEL_JOBS="4"
-export LOCK_FILE="/var/run/${SCRIPT_BASENAME}.lock"
-export VAULTS_FILE="/tmp/vaults.txt"
+# shellcheck source=lib/zrb/output.sh
+source "$ZRB_ROOT/lib/zrb/output.sh"
 
-export SCRIPT_BASENAME="${0##*/}"
+# shellcheck source=lib/zrb/lock.sh
+source "$ZRB_ROOT/lib/zrb/lock.sh"
 
-f_check_switch_param() {
-    if ( ! echo "$1" | grep -q "^[A-Za-z0-9]" ); then
-        f_say "$C_RED Missing argument!"
+# shellcheck source=lib/zrb/parallel.sh
+source "$ZRB_ROOT/lib/zrb/parallel.sh"
 
-        exit 1
-    fi
-}
+zrb_parallel_main() {
+    local parse_status
+    local lock_file
+    local vaults_file
+    local run_status
+    local script_basename
 
-f_date() {
-    local text="$1"
+    zrb_config_defaults
+    zrb_parallel_defaults
+    zrb_output_init
 
-    echo -n "$text"
+    zrb_parallel_parse_args "$@"
+    parse_status=$?
 
-    date +"%Y-%m-%d %H:%M %Z"
-}
-
-_f_declare_f_say() {
-    if [[ $- == *i* ]]; then
-        export QUIET_NOTIFICATIONS=0
-        export INTERACTIVE_SESSION=1
+    if [ "$parse_status" -eq 2 ]; then
+        return 0
     fi
 
-    if [[ $INTERACTIVE_SESSION -eq 1 ]]
-    then
-        f_say() { echo -ne "$1"; echo -e "$C_NOCOLOR"; }
-
-        export C_GREEN="\e[1;32m"
-        export C_RED="\e[1;31m"
-        export C_BLUE="\e[1;34m"
-        export C_PURPLE="\e[1;35m"
-        export C_CYAN="\e[1;36m"
-        export C_NOCOLOR="\e[0m"
-    else
-        # do nothing
-        f_say() { echo -ne "$1"; true; }
+    if [ "$parse_status" -ne 0 ]; then
+        return "$parse_status"
     fi
 
-    export -f f_say
-}
+    zrb_config_load_backup_dataset
 
-f_process_args() {
-    while [ "$#" -gt "0" ]; do
-        case "$1" in
-            -f|--freq)
-                PARAM=$2
-                f_check_switch_param "$PARAM"
+    script_basename=${0##*/}
+    lock_file="/var/run/${script_basename}.lock"
+    vaults_file=$(mktemp /tmp/zrb-vaults.XXXXXX) || return 1
+    ZRB_PARALLEL_VAULTS_FILE=$vaults_file
 
-                FREQ_LIST="$PARAM"
+    trap zrb_parallel_cleanup_temp EXIT
 
-                shift 2
-            ;;
+    zrb_parallel_lock_create "$lock_file" "$script_basename" || return 1
 
-            -j|--jobs)
-                PARAM=$2
-                f_check_switch_param "$PARAM"
+    if ( ! zrb_parallel_list_vaults "$BACKUP_DATASET" > "$vaults_file" ); then
+        zrb_lock_remove "$lock_file"
 
-                PARALLEL_JOBS="$PARAM"
-
-                shift 2
-            ;;
-
-            -h|--help)
-                f_usage
-            ;;
-        esac
-    done
-}
-
-f_usage() {
-    echo "Usage:"
-    echo "    $0                    verbose output"
-    echo "    $0 -f <freq>          hourly,[daily],weekly,monthly (comma separated list)"
-    echo "    $0 -j <num>           number of parallel jobs"
-    echo
-
-    exit 1
-}
-
-f_list_vaults() {
-    if ( ! zfs list -H -s name -o name "$BACKUP_DATASET" > /dev/null ) ; then
-        f_say "$C_RED    Unable to access the ZFS dataset: '$BACKUP_DATASET'"
-
-        exit 1
+        return 1
     fi
 
-    local dataset
+    zrb_parallel_print_timestamp "BEGIN: "
+    zrb_parallel_run_jobs "$vaults_file" "$PARALLEL_JOBS" "$FREQ_LIST"
+    run_status=$?
+    zrb_parallel_print_timestamp "FINISH: "
 
-    for dataset in $( zfs list -r -H -s name -o name "$BACKUP_DATASET" | grep -v "${BACKUP_DATASET}$" ); do
-        zfs list -H -s name -o name -r "$dataset" | grep -q "${dataset}/" || echo "$dataset";
-    done | sed "s@^${BACKUP_DATASET}/@@"
+    zrb_lock_remove "$lock_file"
+
+    return "$run_status"
 }
 
-f_lock_create() {
-    local pid_now=$$
-
-    if pid_locked=$(cat "$LOCK_FILE" 2>/dev/null);
-        then
-            if ( ps --no-headers -o args -p "$pid_locked" | grep -q "${SCRIPT_BASENAME}" );
-                then
-                    f_say "$C_RED $0 is already running!"
-
-                    exit 1
-                else
-                    f_say "$C_PURPLE Stale pidfile exists...removing."
-
-                    f_lock_remove
-            fi
-    fi
-
-    echo "$pid_now" > "$LOCK_FILE"
-}
-
-f_lock_remove() {
-    rm -f "$LOCK_FILE"
-}
-
-f_read_global_config() {
-    if [ -f "$GLOBAL_CONFIG_DIR/BACKUP_DATASET" ];
-        then
-            BACKUP_DATASET=$(cat "$GLOBAL_CONFIG_DIR/BACKUP_DATASET")
-    fi
-}
-
-f_run_parallel_jobs() {
-    VAULTS_FILE=$1
-
-    f_date "BEGIN: "
-
-    # shellcheck disable=SC1083
-    parallel -j "$PARALLEL_JOBS" -a "$VAULTS_FILE" zrb.sh -e yes -f "$FREQ_LIST" -v {1}
-
-    f_date "FINISH: "
-}
-
-_f_declare_f_say
-
-f_process_args "$@"
-
-f_read_global_config
-
-f_lock_create
-
-f_list_vaults | tee "$VAULTS_FILE" > /dev/null
-
-f_run_parallel_jobs "$VAULTS_FILE"
-
-f_lock_remove
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+    zrb_parallel_main "$@"
+fi
