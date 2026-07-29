@@ -18,6 +18,12 @@ source "$ZRB_ROOT/lib/zrb/lock.sh"
 # shellcheck source=lib/zrb/completion.sh
 source "$ZRB_ROOT/lib/zrb/completion.sh"
 
+# shellcheck source=lib/zrb/source.sh
+source "$ZRB_ROOT/lib/zrb/source.sh"
+
+# shellcheck source=lib/zrb/rsync.sh
+source "$ZRB_ROOT/lib/zrb/rsync.sh"
+
 zrb_main() {
     zrb_config_defaults
     zrb_output_init
@@ -97,7 +103,7 @@ zrb_main() {
             # parameter is NOT full path, must be a matched string, can be multiple paths
             fs_to_list=$(zfs list -o name -s name | grep "^$BACKUP_DATASET/.*$vault_to_list")
 
-            if [ x"$fs_to_list" == x"$BACKUP_DATASET" ]; then
+            if [ "$fs_to_list" == "$BACKUP_DATASET" ]; then
                 echo "No matching filesystem!" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
                 f_say "$C_RED No matching filesystem!"
             else
@@ -167,7 +173,8 @@ zrb_main() {
     #    host:/mnt/source/dir
     #
     if [ -f "$backup_vault_conf/source" ]; then
-        export backup_source=$(cat "$backup_vault_conf/source")
+        backup_source=$(cat "$backup_vault_conf/source")
+        export backup_source
     else
         echo "Non-existent source file: $backup_vault_conf/source !" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
         f_say "$C_RED Non-existent source file: $backup_vault_conf/source !"
@@ -298,28 +305,9 @@ zrb_main() {
     rm -f "$backup_vault_log/rsync.log"
 
     # rsync parameters
-    rsync_args="-vrltH --delete --delete-excluded -pgo --stats -h -D --numeric-ids --inplace --log-file=$backup_vault_log/rsync.log --exclude-from=$global_exclude $rsync_exclude_param $rsync_exclude_file"
-
-    f_check_remote_host() {
-        # return if the backup source is a local directory
-        if ( echo "$backup_source" | grep -q -Eo ^"/[0-9a-z@\.-]+" ); then
-            return 0
-        fi
-
-        if ( echo "$backup_source" | grep -q -Eo ^"[0-9a-z@\.-]+" ); then
-            export backup_host=$(echo "$backup_source" | grep -Eo ^"[0-9a-z@\.-]+")
-        fi
-
-        if [ -n "$backup_host" ]; then
-            #echo "DEBUG: backup_host - f_check_remote_host: $backup_host"
-            if ( ! ssh ${ssh_args[@]} "$backup_host" 'echo -n' 2>/dev/null ); then
-                echo "Host $backup_host is not accessible!" | mail -s "zrb.sh ERROR: $vault" "$email_notify_address"
-                f_say "$C_RED Host $backup_host is not accessible!"
-
-                exit 1
-            fi
-        fi
-    }
+    # shellcheck disable=SC2034 # The array is passed by name to the rsync module.
+    rsync_args=()
+    zrb_rsync_build_args rsync_args "$backup_vault_log/rsync.log" "$global_exclude" "$rsync_exclude_param" "$rsync_exclude_file"
 
     f_pre_run_script() {
         #echo "DEBUG: backup_host - f_pre_run_script: $backup_host"
@@ -339,41 +327,12 @@ zrb_main() {
         fi
     }
 
-    f_ssh_config() {
-        ssh_config="/$BACKUP_DATASET/$vault/config/ssh"
-
-        if [ -f "$ssh_config" ]; then
-            ssh_args="-F $ssh_config"
-        fi
-    }
-
-    f_rsync() {
-        # shellcheck disable=SC2086
-        #rsync-novanished.sh $rsync_args "$backup_source/" "$backup_vault_dest/"
-        #rsync-novanished.sh ${rsync_args[@]} "$backup_source/" "$backup_vault_dest/"
-        ssh_config="/$BACKUP_DATASET/$vault/config/ssh"
-
-        if [ -f "$ssh_config" ]; then
-            rsync --rsync-path 'sudo rsync' -e "ssh -F $ssh_config" ${rsync_args[@]} "$backup_source/" "$backup_vault_dest/"
-        else
-            rsync --rsync-path 'sudo rsync' ${rsync_args[@]} "$backup_source/" "$backup_vault_dest/"
-        fi
-
-        exit_code=$?
-
-        if [ $exit_code -eq 24 ] || [ $exit_code -eq 23 ]; then
-            return 0
-        fi
-
-        return $exit_code
-    }
-
     ################## doing rsync ####################
     lockfile="$backup_vault_log/lock"
     file_finished="/$BACKUP_DATASET/$vault/FINISHED"
+    ssh_config=$(zrb_source_ssh_config "$backup_vault_conf/ssh")
 
-    f_ssh_config
-    f_check_remote_host
+    zrb_source_check_remote_access "$backup_source" "$ssh_config" "$vault" "$email_notify_address" || exit 1
     f_check_placeholder
     zrb_lock_create "$lockfile" "$(basename "$0")" "$vault" "$email_notify_address" || exit 1
 
@@ -390,10 +349,10 @@ zrb_main() {
     echo -e "BEGIN:\t$date_start_human" > "$backup_vault_log/report.txt"
 
     if [ "$QUIET_NOTIFICATIONS" -eq 1 ]; then
-        f_rsync > /dev/null
+        zrb_rsync_run "$backup_source" "$backup_vault_dest" "$ssh_config" rsync_args > /dev/null
     else
         f_say "$C_GREEN  START:$C_BLUE $date_start_human"
-        f_rsync
+        zrb_rsync_run "$backup_source" "$backup_vault_dest" "$ssh_config" rsync_args
     fi
 
     rsync_ret=$?
