@@ -9,8 +9,8 @@ install -m 0644 lib/zrb/*.sh /opt/zrb/lib/zrb/
 ln -s /opt/zrb/zrb.sh /root/bin/zrb.sh
 ln -s /opt/zrb/parallel-zrb.sh /root/bin/parallel-zrb.sh
 ln -s /opt/zrb/zrb-client.sh /root/bin/zrb-client.sh
-install -m 0644 etc/exclude etc/expire etc/backup_dataset /etc/zrb/
-install -m 0644 zrb-runall /etc/cron.d/zrb-runall
+install -m 0644 etc/zrb/exclude etc/zrb/expire etc/zrb/backup_dataset /etc/zrb/
+install -m 0644 etc/cron.d/zrb-runall /etc/cron.d/zrb-runall
 ```
 
 Review `/etc/zrb/backup_dataset`, `/etc/zrb/exclude`, `/etc/zrb/expire`, and the cron schedule before the first run.

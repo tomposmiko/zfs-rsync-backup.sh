@@ -62,7 +62,7 @@ $ zrb.sh -e only -v VAULT
 $ zrb.sh -e yes -v VAULT
 
 #### cron job
-$ cp zrb-runall /etc/cron.d/
+$ cp etc/cron.d/zrb-runall /etc/cron.d/
 
 $ chmod 644 /etc/cron.d/zrb-runall
 
