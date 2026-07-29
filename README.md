@@ -50,19 +50,19 @@ Apply the client configuration:
 $ zrb-client.sh --public-key-file /path/to/backup.pub
 
 #### manual running
-$ zrb.sh-v VAULT
+$ zrb.sh -v VAULT
 
 #### expiring
 - expire only:
 
-zrb.sh-e only -v VAULT
+$ zrb.sh -e only -v VAULT
 
 - backup + expire:
 
-zrb.sh-e yes -v VAULT
+$ zrb.sh -e yes -v VAULT
 
 #### cron job
-$ cp zrb-ruanall /etc/cron.d/
+$ cp zrb-runall /etc/cron.d/
 
 $ chmod 644 /etc/cron.d/zrb-runall
 
@@ -70,3 +70,14 @@ Change whatever timing and frequency (eg. hourly, daily, weekly, monthly) you pr
 
 #### listing
 $ zrb.sh -l VAULT
+
+ARCHITECTURE
+============
+
+The executable scripts are thin entrypoints. Reusable behavior is grouped by responsibility under `lib/zrb`, including configuration, CLI parsing, vaults, source checks, rsync, snapshots, retention, locks, completion state, reports, hooks, parallel execution, and client provisioning.
+
+Use `make check` to run Bash syntax validation, ShellCheck, and the complete test suite.
+
+See `INSTALL.md` for the installation layout.
+
+`rsync-novanished.sh` is a deprecated compatibility wrapper. Current backups use the exit-status policy in `lib/zrb/rsync.sh`.

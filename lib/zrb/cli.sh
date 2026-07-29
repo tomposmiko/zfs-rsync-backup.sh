@@ -8,6 +8,14 @@ zrb_cli_require_value() {
     fi
 }
 
+zrb_cli_require_nonempty() {
+    if [ -z "${1:-}" ]; then
+        f_say "$C_RED Missing argument!"
+
+        return 1
+    fi
+}
+
 zrb_cli_usage() {
     echo "Usage:"
     echo " $0 -v VAULT [ -p SNAPSHOT_PREFIX ] [ -f FREQUENCY ] [ -e EXPIRING ]"
@@ -62,19 +70,19 @@ zrb_cli_parse() {
                 ;;
             -g|--confdir)
                 parameter=${2:-}
-                zrb_cli_require_value "$parameter" || return
+                zrb_cli_require_nonempty "$parameter" || return
                 GLOBAL_CONFIG_DIR=$parameter
                 shift 2
                 ;;
             -x|--exclude-file)
                 parameter=${2:-}
-                zrb_cli_require_value "$parameter" || return
+                zrb_cli_require_nonempty "$parameter" || return
                 backup_exclude_param=$parameter
                 shift 2
                 ;;
             -a|--add-vault)
                 parameter=${2:-}
-                zrb_cli_require_value "$parameter" || return
+                zrb_cli_require_nonempty "$parameter" || return
                 data_source=$parameter
                 shift 2
                 ;;

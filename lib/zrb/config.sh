@@ -3,7 +3,7 @@
 
 zrb_config_defaults() {
     BACKUP_DATASET="tank/zrb"
-    PATH="/root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    PATH=${ZRB_COMMAND_PATH:-"/root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}
     ZRB_RUN_DATE=$(date "+%Y-%m-%d--%H-%M")
 
     GLOBAL_CONFIG_DIR="/etc/zrb"
@@ -27,10 +27,13 @@ zrb_config_set_global_paths() {
 }
 
 zrb_config_load_backup_dataset() {
-    local dataset_file="$GLOBAL_CONFIG_DIR/BACKUP_DATASET"
+    local dataset_file="$GLOBAL_CONFIG_DIR/backup_dataset"
+    local legacy_dataset_file="$GLOBAL_CONFIG_DIR/BACKUP_DATASET"
 
     if [[ -f $dataset_file ]]; then
         BACKUP_DATASET=$(<"$dataset_file")
+    elif [[ -f $legacy_dataset_file ]]; then
+        BACKUP_DATASET=$(<"$legacy_dataset_file")
     fi
 
     export BACKUP_DATASET

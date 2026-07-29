@@ -44,6 +44,16 @@ test_parse_actions() {
         assert_equal "remote" "$vault" "vault"
 }
 
+test_parse_absolute_paths() {
+    zrb_config_defaults
+    zrb_output_init
+    zrb_cli_parse -g /tmp/zrb-config -x /tmp/zrb-exclude -a /srv/source -v local
+
+    assert_equal "/tmp/zrb-config" "$GLOBAL_CONFIG_DIR" "config directory" &&
+        assert_equal "/tmp/zrb-exclude" "$backup_exclude_param" "exclude path" &&
+        assert_equal "/srv/source" "$data_source" "local source"
+}
+
 test_missing_option_value_fails() {
     zrb_config_defaults
     zrb_output_init
@@ -105,18 +115,50 @@ test_default_notify_address() {
     assert_equal "root" "$notify_address" "default notification address"
 }
 
+test_load_lowercase_backup_dataset() {
+    local test_dir
+
+    test_dir=$(mktemp -d)
+    echo "pool/lowercase" > "$test_dir/backup_dataset"
+    echo "pool/legacy" > "$test_dir/BACKUP_DATASET"
+    GLOBAL_CONFIG_DIR=$test_dir
+
+    zrb_config_load_backup_dataset
+    assert_equal "pool/lowercase" "$BACKUP_DATASET" "lowercase backup dataset"
+
+    rm -f "$test_dir/backup_dataset" "$test_dir/BACKUP_DATASET"
+    rmdir "$test_dir"
+}
+
+test_load_legacy_backup_dataset() {
+    local test_dir
+
+    test_dir=$(mktemp -d)
+    echo "pool/legacy" > "$test_dir/BACKUP_DATASET"
+    GLOBAL_CONFIG_DIR=$test_dir
+
+    zrb_config_load_backup_dataset
+    assert_equal "pool/legacy" "$BACKUP_DATASET" "legacy backup dataset"
+
+    rm -f "$test_dir/BACKUP_DATASET"
+    rmdir "$test_dir"
+}
+
 failures=0
 for test_name in \
     test_defaults \
     test_parse_backup_options \
     test_parse_actions \
+    test_parse_absolute_paths \
     test_missing_option_value_fails \
     test_unknown_option_fails \
     test_global_paths \
     test_relative_global_path_fails \
     test_vault_paths \
     test_load_notify_address \
-    test_default_notify_address
+    test_default_notify_address \
+    test_load_lowercase_backup_dataset \
+    test_load_legacy_backup_dataset
 do
     run_test "$test_name" || failures=$((failures + 1))
 done

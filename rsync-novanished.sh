@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Deprecated compatibility wrapper. zrb.sh now handles accepted rsync statuses in lib/zrb/rsync.sh.
+
 rsync --rsync-path="sudo rsync" "$@"
 status=$?
 
