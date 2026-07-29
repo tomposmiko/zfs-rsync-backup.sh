@@ -2,11 +2,29 @@
 # shellcheck disable=SC2034 # Retention values are populated through nameref validation.
 
 zrb_preflight_pass() {
+    ZRB_PREFLIGHT_PASS_COUNT=$((${ZRB_PREFLIGHT_PASS_COUNT:-0} + 1))
+
     printf '%bPASS%b: %s\n' "${C_GREEN:-}" "${C_NOCOLOR:-}" "$1"
 }
 
 zrb_preflight_fail() {
+    ZRB_PREFLIGHT_FAIL_COUNT=$((${ZRB_PREFLIGHT_FAIL_COUNT:-0} + 1))
+
     printf '%bFAIL%b: %s\n' "${C_RED:-}" "${C_NOCOLOR:-}" "$1"
+}
+
+zrb_preflight_summary() {
+    local status=$1
+
+    printf '\n'
+
+    if [ "$status" -eq 0 ]; then
+        printf '%bPASS%b: Preflight check passed: %d checks passed.\n' "${C_GREEN:-}" "${C_NOCOLOR:-}" "$ZRB_PREFLIGHT_PASS_COUNT"
+    else
+        printf '%bFAIL%b: Preflight check failed: %d checks passed, %d checks failed.\n' "${C_RED:-}" "${C_NOCOLOR:-}" "$ZRB_PREFLIGHT_PASS_COUNT" "$ZRB_PREFLIGHT_FAIL_COUNT"
+    fi
+
+    printf '\n'
 }
 
 zrb_preflight_commands() {
@@ -114,6 +132,9 @@ zrb_preflight_run() {
     local remote_host=""
     local check_status=0
 
+    ZRB_PREFLIGHT_PASS_COUNT=0
+    ZRB_PREFLIGHT_FAIL_COUNT=0
+
     zrb_preflight_commands bash date grep mail ps rsync ssh zfs || check_status=1
     zrb_preflight_readable_file "$global_exclude_file" "Global exclude file" || check_status=1
 
@@ -153,14 +174,10 @@ zrb_preflight_run() {
     zrb_preflight_retention "$expiration_mode" "$frequency_list" "$global_retention_file" "$vault_config/expire" || check_status=1
 
     if [ "$check_status" -ne 0 ]; then
-        printf '\n'
-        zrb_preflight_fail "Preflight check failed."
-        printf '\n'
+        zrb_preflight_summary "$check_status"
 
         return 1
     fi
 
-    printf '\n'
-    zrb_preflight_pass "Preflight check passed."
-    printf '\n'
+    zrb_preflight_summary "$check_status"
 }

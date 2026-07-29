@@ -59,7 +59,7 @@ test_complete_local_backup() {
     assert_file_contains "$test_dir/check.out" "PASS: Local source and placeholder exist: $source_dir" || test_status=1
     assert_file_contains "$test_dir/check.out" "PASS: SSH validation is not required for a local source" || test_status=1
     assert_file_contains "$test_dir/check.out" "PASS: Retention validation is not required for mode 'no'" || test_status=1
-    assert_file_contains "$test_dir/check.out" "Preflight check passed." || test_status=1
+    assert_file_contains "$test_dir/check.out" "PASS: Preflight check passed:" || test_status=1
 
     ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" "$sbin_dir/zrb.sh" -g "$config_dir" -v photos > "$test_dir/zrb.out"
 

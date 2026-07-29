@@ -62,6 +62,28 @@ test_command_check_reports_all_results() {
     assert_equal "1" "$status" "aggregated command check status"
 }
 
+test_success_summary_reports_count() {
+    local output
+
+    ZRB_PREFLIGHT_PASS_COUNT=4
+    ZRB_PREFLIGHT_FAIL_COUNT=0
+
+    output=$(zrb_preflight_summary 0)
+
+    assert_equal $'\nPASS: Preflight check passed: 4 checks passed.' "$output" "successful preflight summary"
+}
+
+test_failure_summary_reports_counts() {
+    local output
+
+    ZRB_PREFLIGHT_PASS_COUNT=3
+    ZRB_PREFLIGHT_FAIL_COUNT=2
+
+    output=$(zrb_preflight_summary 1)
+
+    assert_equal $'\nFAIL: Preflight check failed: 3 checks passed, 2 checks failed.' "$output" "failed preflight summary"
+}
+
 test_valid_hook_syntax() {
     local test_dir
     local hook_file
@@ -105,6 +127,8 @@ for test_name in \
     test_fail_is_red \
     test_missing_command_reports_failure \
     test_command_check_reports_all_results \
+    test_success_summary_reports_count \
+    test_failure_summary_reports_counts \
     test_valid_hook_syntax \
     test_invalid_hook_syntax_fails \
     test_missing_required_file_fails \
