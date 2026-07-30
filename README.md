@@ -77,6 +77,10 @@ FAIL: Preflight check failed: 22 checks passed, 3 checks failed.
 ```
 
 #### expiring
+- preview expiration without deleting snapshots:
+
+$ zrb.sh -e preview -v VAULT
+
 - expire only:
 
 $ zrb.sh -e only -v VAULT

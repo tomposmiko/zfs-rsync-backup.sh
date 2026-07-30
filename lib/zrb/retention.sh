@@ -6,6 +6,18 @@ zrb_retention_is_only_mode() {
     [ "$mode" == "only" ]
 }
 
+zrb_retention_is_preview_mode() {
+    local mode=$1
+
+    [ "$mode" == "preview" ]
+}
+
+zrb_retention_runs_without_backup() {
+    local mode=$1
+
+    [ "$mode" == "only" ] || [ "$mode" == "preview" ]
+}
+
 zrb_retention_runs_after_snapshot() {
     local mode=$1
 
@@ -83,6 +95,7 @@ zrb_retention_apply() {
     local frequency=$3
     local retention_period=$4
     local minimum_count=$5
+    local preview=${6:-0}
     local expiration_epoch
     local snapshot_output
     local full_snapshot_name
@@ -131,10 +144,14 @@ zrb_retention_apply() {
             continue
         fi
 
-        f_say "$C_GREEN        EXPIRED:${C_BLUE:-} ${dataset}@${snapshot_name}"
+        if [ "$preview" -eq 1 ]; then
+            f_say "$C_YELLOW        WOULD EXPIRE:${C_BLUE:-} ${dataset}@${snapshot_name}"
+        else
+            f_say "$C_GREEN        EXPIRED:${C_BLUE:-} ${dataset}@${snapshot_name}"
 
-        if ! { zfs destroy "${dataset}@${snapshot_name}"; }; then
-            return 1
+            if ! { zfs destroy "${dataset}@${snapshot_name}"; }; then
+                return 1
+            fi
         fi
 
         remaining_count=$((remaining_count - 1))
@@ -175,6 +192,7 @@ zrb_retention_run() {
     local vault_config=$5
     local vault_name=$6
     local notify_address=$7
+    local preview=${8:-0}
     local retention_period=""
     local minimum_count=""
     local config_status
@@ -189,5 +207,5 @@ zrb_retention_run() {
         return 1
     fi
 
-    zrb_retention_apply "$dataset" "$prefix" "$frequency" "$retention_period" "$minimum_count"
+    zrb_retention_apply "$dataset" "$prefix" "$frequency" "$retention_period" "$minimum_count" "$preview"
 }

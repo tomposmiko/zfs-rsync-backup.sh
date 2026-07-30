@@ -14,6 +14,7 @@ ZFS_DESTROY_STATUS=0
 ZFS_LIST_OUTPUT=""
 ZFS_DESTROY_LOG=""
 C_GREEN=""
+C_YELLOW=""
 C_RED=""
 
 zfs() {
@@ -75,6 +76,11 @@ test_expiration_modes() {
     zrb_retention_is_only_mode only &&
         ( ! zrb_retention_is_only_mode yes ) &&
         ( ! zrb_retention_is_only_mode no ) &&
+        zrb_retention_is_preview_mode preview &&
+        ( ! zrb_retention_is_preview_mode only ) &&
+        zrb_retention_runs_without_backup only &&
+        zrb_retention_runs_without_backup preview &&
+        ( ! zrb_retention_runs_without_backup yes ) &&
         zrb_retention_runs_after_snapshot yes &&
         ( ! zrb_retention_runs_after_snapshot only ) &&
         ( ! zrb_retention_runs_after_snapshot no )
@@ -115,6 +121,26 @@ test_expired_snapshot_output() {
     )
 
     assert_equal "        EXPIRED: tank/zrb/photos@zrb_daily_2024-01-01--00-00" "$output" "expired snapshot output"
+
+    cleanup_destroy_log
+}
+
+test_preview_lists_without_destroying() {
+    local output
+
+    setup_destroy_log
+    ZFS_LIST_OUTPUT="tank/zrb/photos@zrb_daily_2024-01-01--00-00"
+
+    output=$(
+        f_say() {
+            printf '%s\n' "$1"
+        }
+
+        zrb_retention_apply tank/zrb/photos zrb daily "14 days" 0 1
+    )
+
+    assert_equal "        WOULD EXPIRE: tank/zrb/photos@zrb_daily_2024-01-01--00-00" "$output" "preview output" &&
+        assert_equal "" "$(<"$ZFS_DESTROY_LOG")" "preview destroy log"
 
     cleanup_destroy_log
 }
@@ -247,6 +273,7 @@ for test_name in \
     test_expire_old_snapshots_above_minimum \
     test_keep_minimum_count \
     test_expired_snapshot_output \
+    test_preview_lists_without_destroying \
     test_ignore_new_unrelated_and_malformed_snapshots \
     test_destroy_failure_is_returned \
     test_list_failure_is_returned \

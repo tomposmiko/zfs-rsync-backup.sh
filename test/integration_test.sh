@@ -10,7 +10,7 @@ create_stub_commands() {
     local stub_dir=$1
 
     # shellcheck disable=SC2016 # Variables are expanded when the generated stub runs.
-    printf '#!/bin/bash\ncase "$1" in\n    list)\n        if [[ " $* " == *"@"* ]]; then\n            exit "${ZFS_SNAPSHOT_EXISTS_STATUS:-1}"\n        fi\n\n        exit 0\n        ;;\n    snap)\n        echo "$2" >> "$ZFS_TEST_LOG"\n        exit 0\n        ;;\n    destroy)\n        exit 0\n        ;;\nesac\n' > "$stub_dir/zfs"
+    printf '#!/bin/bash\ncase "$1" in\n    list)\n        if [[ " $* " == *"@"* ]]; then\n            exit "${ZFS_SNAPSHOT_EXISTS_STATUS:-1}"\n        fi\n\n        if [[ " $* " == *" -t snap "* ]]; then\n            printf "%%s\\n" "${ZFS_RETENTION_OUTPUT:-}"\n        fi\n\n        exit 0\n        ;;\n    snap)\n        echo "$2" >> "$ZFS_TEST_LOG"\n        exit 0\n        ;;\n    destroy)\n        echo "destroy $2" >> "$ZFS_TEST_LOG"\n        exit 0\n        ;;\nesac\n' > "$stub_dir/zfs"
 
     printf '#!/bin/bash\nexit 0\n' > "$stub_dir/rsync"
 
@@ -31,6 +31,7 @@ test_complete_local_backup() {
     local dataset_name
     local vault_root
     local zfs_log
+    local snapshot_log
     local test_status=0
 
     test_dir=$(mktemp -d)
@@ -86,6 +87,17 @@ test_complete_local_backup() {
     assert_path_missing "$vault_root/FAILED" || test_status=1
     assert_path_missing "$vault_root/log/lock" || test_status=1
     assert_file_contains "$zfs_log" "$dataset_name/Projects/SZB@zrb_daily_" || test_status=1
+
+    snapshot_log=$(<"$zfs_log")
+
+    echo 'expire_daily="14 days"' > "$config_dir/expire"
+
+    echo 'least_keep_count_daily="0"' >> "$config_dir/expire"
+
+    ZRB_COMMAND_PATH="$stub_dir:/usr/bin:/bin" ZFS_TEST_LOG="$zfs_log" ZFS_RETENTION_OUTPUT="$dataset_name/Projects/SZB@zrb_daily_2024-01-01--00-00" "$sbin_dir/zrb.sh" -g "$config_dir" -e preview -v Projects/SZB > "$test_dir/preview.out"
+
+    assert_file_contains "$test_dir/preview.out" "WOULD EXPIRE: $dataset_name/Projects/SZB@zrb_daily_2024-01-01--00-00" || test_status=1
+    assert_equal "$snapshot_log" "$(<"$zfs_log")" "preview leaves snapshots unchanged" || test_status=1
 
     rm -rf "$test_dir"
 

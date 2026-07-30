@@ -16,6 +16,21 @@ zrb_cli_require_nonempty() {
     fi
 }
 
+zrb_cli_expiration_mode_is_valid() {
+    local mode=$1
+
+    case "$mode" in
+        yes|no|only|preview)
+            return 0
+            ;;
+        *)
+            f_say "$C_RED Invalid expiration mode: $mode"
+
+            return 1
+            ;;
+    esac
+}
+
 zrb_cli_usage() {
     echo "Usage:"
     echo " $0 -v VAULT [ -p SNAPSHOT_PREFIX ] [ -f FREQUENCY ] [ -e EXPIRING ]"
@@ -27,7 +42,7 @@ zrb_cli_usage() {
     echo "  -f|--freq <freq types>    hourly,[daily],weekly,monthly (comma separated list)"
     echo "  -g|--confdir <dir path>"
     echo "  -x|--exclude-file <file>  path to shared exclude file"
-    echo "  -e|--expire <goal>        yes | [no] | only"
+    echo "  -e|--expire <goal>        yes | [no] | only | preview"
     echo "  -a|--add-vault <source>   create vault and add source"
     echo "  -l|--list <vault>         display vault"
     echo "  -c|--check                validate configuration without running a backup"
@@ -61,6 +76,8 @@ zrb_cli_parse() {
             -e|--expire)
                 parameter=${2:-}
                 zrb_cli_require_value "$parameter" || return
+                zrb_cli_expiration_mode_is_valid "$parameter" || return
+
                 expire=$parameter
                 shift 2
                 ;;

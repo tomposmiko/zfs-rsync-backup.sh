@@ -6,6 +6,9 @@ CHANGELOG
 - Replaced race-prone PID-only locking with atomic kernel-backed `flock` locks for both single-vault and parallel runs.
 - Added `flock` to preflight validation and installation requirements.
 
+###### Added
+- Added retention preview mode with `zrb.sh -e preview -v VAULT`; it lists snapshots that would expire without running a backup or deleting snapshots.
+
 ###### Fixed
 - Fixed successful completion being recorded before hooks, snapshots, and retention finished.
 - Fixed pre-run and post-run hook failures being ignored.

@@ -82,6 +82,7 @@ zrb_main() {
     local config_status
     local hook_status
     local parse_status
+    local retention_preview
 
     zrb_config_defaults
     zrb_output_init
@@ -161,9 +162,15 @@ zrb_main() {
 
     zrb_vault_add_notify_address email_notify_address "$backup_vault_conf" || exit 1
 
-    if { zrb_retention_is_only_mode "$expire"; }; then
+    if { zrb_retention_runs_without_backup "$expire"; }; then
+        retention_preview=0
+
+        if { zrb_retention_is_preview_mode "$expire"; }; then
+            retention_preview=1
+        fi
+
         for freq_type in $FREQ_LIST; do
-            zrb_retention_run "$vault_dataset" "$SNAPSHOT_PREFIX" "$freq_type" "$global_expire" "$backup_vault_conf/expire" "$vault" "$email_notify_address" || exit 1
+            zrb_retention_run "$vault_dataset" "$SNAPSHOT_PREFIX" "$freq_type" "$global_expire" "$backup_vault_conf/expire" "$vault" "$email_notify_address" "$retention_preview" || exit 1
         done
 
         exit 0
