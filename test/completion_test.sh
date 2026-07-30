@@ -9,7 +9,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/test_helper.sh"
 # shellcheck source=lib/zrb/completion.sh
 source "$TEST_ROOT/lib/zrb/completion.sh"
 
-C_RED=""
+C_YELLOW=""
 
 f_say() {
     :

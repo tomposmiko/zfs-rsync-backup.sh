@@ -67,7 +67,7 @@ zrb_retention_apply() {
             continue
         fi
 
-        f_say "$C_GREEN  ${dataset}@${snapshot_name}"
+        f_say "$C_GREEN        EXPIRED:${C_BLUE:-} ${dataset}@${snapshot_name}"
 
         if ! { zfs destroy "${dataset}@${snapshot_name}"; }; then
             return 1

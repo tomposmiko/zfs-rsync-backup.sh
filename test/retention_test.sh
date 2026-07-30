@@ -100,6 +100,25 @@ test_keep_minimum_count() {
     cleanup_destroy_log
 }
 
+test_expired_snapshot_output() {
+    local output
+
+    setup_destroy_log
+    ZFS_LIST_OUTPUT="tank/zrb/photos@zrb_daily_2024-01-01--00-00"
+
+    output=$(
+        f_say() {
+            printf '%s\n' "$1"
+        }
+
+        zrb_retention_apply tank/zrb/photos zrb daily "14 days" 0
+    )
+
+    assert_equal "        EXPIRED: tank/zrb/photos@zrb_daily_2024-01-01--00-00" "$output" "expired snapshot output"
+
+    cleanup_destroy_log
+}
+
 test_ignore_new_unrelated_and_malformed_snapshots() {
     setup_destroy_log
     ZFS_LIST_OUTPUT=$'tank/zrb/photos@manual_daily_2024-01-01--00-00\ntank/zrb/photos@zrb_weekly_2024-01-01--00-00\ntank/zrb/photos@zrb_daily_invalid\ntank/zrb/photos@zrb_daily_2024-02-01--00-00'
@@ -180,6 +199,7 @@ for test_name in \
     test_expiration_modes \
     test_expire_old_snapshots_above_minimum \
     test_keep_minimum_count \
+    test_expired_snapshot_output \
     test_ignore_new_unrelated_and_malformed_snapshots \
     test_destroy_failure_is_returned \
     test_list_failure_is_returned \

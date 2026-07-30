@@ -14,14 +14,16 @@ zrb_completion_begin() {
         interrupted=1
 
         echo "Previous backup was interrupted. Continuing from the last point." | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
-        f_say "$C_RED Previous backup was interrupted. Continuing from the last point."
+
+        f_say "${C_YELLOW:-}        WARNING:${C_NOCOLOR:-} Previous backup was interrupted; continuing from the last point."
     fi
 
     if [ -f "$completion_file" ]; then
         rm -f "$completion_file"
     elif [ "$interrupted" -eq 0 ]; then
-        echo "Last backup was not succesful. Continuing from the last point." | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
-        f_say "$C_RED Last backup was not succesful. Continuing from the last point."
+        echo "Last backup was not successful. Continuing from the last point." | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
+
+        f_say "${C_YELLOW:-}        WARNING:${C_NOCOLOR:-} Last backup was not successful; continuing from the last point."
     fi
 
     touch "$running_file"

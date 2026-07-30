@@ -65,8 +65,12 @@ zrb_parallel_main() {
     fi
 
     zrb_parallel_print_timestamp "BEGIN: "
+    echo
+
     zrb_parallel_run_jobs "$vaults_file" "$PARALLEL_JOBS" "$FREQ_LIST"
     run_status=$?
+
+    echo
     zrb_parallel_print_timestamp "FINISH: "
 
     zrb_lock_remove "$lock_file"

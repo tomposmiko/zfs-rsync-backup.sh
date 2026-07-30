@@ -159,6 +159,8 @@ zrb_main() {
     file_failed="/$BACKUP_DATASET/$vault/FAILED"
     report_file="$backup_vault_log/report.txt"
 
+    f_say "$C_GREEN    VAULT:$C_BLUE $vault"
+
     zrb_source_check_remote_access "$backup_source" "$ssh_config" "$vault" "$email_notify_address" || exit 1
     zrb_source_validate_placeholder "$backup_source" "$global_placeholder" "$backup_vault_conf/placeholder" "$vault" "$email_notify_address" || exit 1
     zrb_lock_create "$lockfile" "$(basename "$0")" "$vault" "$email_notify_address" || exit 1
@@ -176,8 +178,6 @@ zrb_main() {
     zrb_hook_run "$backup_vault_conf/pre-run.sh"
 
     ############################### rsync ################################
-    f_say "$C_GREEN VAULT:$C_BLUE $vault"
-
     date_start_epoch=0
     zrb_report_begin date_start_epoch "$report_file" "$QUIET_NOTIFICATIONS"
 

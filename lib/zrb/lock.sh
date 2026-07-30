@@ -34,7 +34,7 @@ zrb_lock_create() {
             return 1
         fi
 
-        f_say "$C_PURPLE Stale pidfile exists...removing."
+        f_say "${C_YELLOW:-}        WARNING:${C_NOCOLOR:-} Stale pidfile exists; removing it."
         zrb_lock_remove "$lock_file"
     fi
 

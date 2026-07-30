@@ -10,7 +10,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/test_helper.sh"
 source "$TEST_ROOT/lib/zrb/lock.sh"
 
 C_RED=""
-C_PURPLE=""
+C_YELLOW=""
 
 f_say() {
     :
