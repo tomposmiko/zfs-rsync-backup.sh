@@ -103,7 +103,7 @@ zrb_rsync_run() {
     local -a command=(
         rsync
         --rsync-path
-        "sudo rsync"
+        "LC_ALL=C sudo rsync"
     )
 
     if [ -n "$ssh_config" ]; then
@@ -121,7 +121,7 @@ zrb_rsync_run() {
 
     diagnostics_file=$(mktemp) || return 1
 
-    "${command[@]}" 2> "$diagnostics_file"
+    LC_ALL=C "${command[@]}" 2> "$diagnostics_file"
     status=$?
 
     cat "$diagnostics_file" >&2

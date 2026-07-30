@@ -11,6 +11,10 @@ CHANGELOG
 - Fixed pre-run and post-run hook failures being ignored.
 - Fixed exact snapshot-name collisions being silently accepted; an existing target snapshot now fails the run.
 - Fixed all rsync status 23 failures being accepted; only diagnostics limited to vanished or changed source files are now tolerated.
+- Fixed locale-dependent rsync status 23 classification by using the C locale locally and remotely.
+
+###### Security
+- Replaced executable retention configuration loading with strict parsing of documented keys and values.
 
 ###### Compatibility
 - PID lock files remain available for inspection and crash diagnostics.

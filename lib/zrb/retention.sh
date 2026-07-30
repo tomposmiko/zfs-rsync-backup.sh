@@ -1,5 +1,4 @@
 #!/bin/bash
-# shellcheck disable=SC2034 # Retention settings are loaded dynamically and accessed by indirect name.
 
 zrb_retention_is_only_mode() {
     local mode=$1
@@ -11,6 +10,71 @@ zrb_retention_runs_after_snapshot() {
     local mode=$1
 
     [ "$mode" == "yes" ]
+}
+
+zrb_retention_value_is_valid() {
+    local key=$1
+    local value=$2
+
+    case "$key" in
+        expire_hourly|expire_daily|expire_weekly|expire_monthly)
+            [[ $value =~ ^[1-9][0-9]*[[:space:]]+(hour|hours|day|days|week|weeks|month|months|year|years)$ ]]
+            ;;
+        least_keep_count_hourly|least_keep_count_daily|least_keep_count_weekly|least_keep_count_monthly)
+            [[ $value =~ ^[0-9]+$ ]]
+            ;;
+        *)
+            return 1
+            ;;
+    esac
+}
+
+zrb_retention_parse_config() {
+    local config_file=$1
+    local retention_name=$2
+    local minimum_name=$3
+    local period_target_name=$4
+    local minimum_target_name=$5
+    local -n period_ref=$period_target_name
+    local -n minimum_ref=$minimum_target_name
+    local line
+    local key
+    local value
+
+    while IFS= read -r line || [ -n "$line" ]; do
+        line=${line%$'\r'}
+
+        if [[ $line =~ ^[[:space:]]*$ ]] || [[ $line =~ ^[[:space:]]*# ]]; then
+            continue
+        fi
+
+        if [[ ! $line =~ ^[[:space:]]*([a-z_]+)[[:space:]]*=(.*)$ ]]; then
+            return 1
+        fi
+
+        key=${BASH_REMATCH[1]}
+        value=${BASH_REMATCH[2]}
+        value=${value#"${value%%[![:space:]]*}"}
+        value=${value%"${value##*[![:space:]]}"}
+
+        if [[ $value == \"*\" ]] && [ "${#value}" -ge 2 ]; then
+            value=${value:1:${#value}-2}
+        elif [[ $value == \'*\' ]] && [ "${#value}" -ge 2 ]; then
+            value=${value:1:${#value}-2}
+        elif [[ $value == *\"* ]] || [[ $value == *\'* ]]; then
+            return 1
+        fi
+
+        if ! { zrb_retention_value_is_valid "$key" "$value"; }; then
+            return 1
+        fi
+
+        if [ "$key" == "$retention_name" ]; then
+            period_ref=$value
+        elif [ "$key" == "$minimum_name" ]; then
+            minimum_ref=$value
+        fi
+    done < "$config_file"
 }
 
 zrb_retention_apply() {
@@ -87,29 +151,16 @@ zrb_retention_load_config() {
     local -n minimum_ref=$minimum_target_name
     local retention_name="expire_${frequency}"
     local minimum_name="least_keep_count_${frequency}"
-    local expire_hourly
-    local expire_daily
-    local expire_weekly
-    local expire_monthly
-    local least_keep_count_hourly
-    local least_keep_count_daily
-    local least_keep_count_weekly
-    local least_keep_count_monthly
 
     if [ ! -f "$global_config" ]; then
         return 1
     fi
 
-    # shellcheck disable=SC1090
-    source "$global_config"
+    zrb_retention_parse_config "$global_config" "$retention_name" "$minimum_name" "$period_target_name" "$minimum_target_name" || return 1
 
     if [ -f "$vault_config" ]; then
-        # shellcheck disable=SC1090
-        source "$vault_config"
+        zrb_retention_parse_config "$vault_config" "$retention_name" "$minimum_name" "$period_target_name" "$minimum_target_name" || return 1
     fi
-
-    period_ref=${!retention_name:-}
-    minimum_ref=${!minimum_name:-}
 
     if [ -z "$period_ref" ] || [[ ! $minimum_ref =~ ^[0-9]+$ ]]; then
         return 1

@@ -11,8 +11,13 @@ source "$TEST_ROOT/lib/zrb/rsync.sh"
 
 RSYNC_TEST_STATUS=0
 RSYNC_TEST_DIAGNOSTICS=""
+RSYNC_TEST_LOCALE=""
+RSYNC_TEST_ARGS=""
 
 rsync() {
+    RSYNC_TEST_LOCALE=${LC_ALL:-}
+    RSYNC_TEST_ARGS=$*
+
     printf '%s' "$RSYNC_TEST_DIAGNOSTICS" >&2
 
     return "$RSYNC_TEST_STATUS"
@@ -63,6 +68,20 @@ test_run_accepts_status_23_for_vanished_source_file() {
     zrb_rsync_run host:/srv /vault/data "" args 2> /dev/null
 }
 
+test_run_uses_stable_locale() {
+    local -a args=()
+
+    RSYNC_TEST_STATUS=0
+    RSYNC_TEST_DIAGNOSTICS=""
+    RSYNC_TEST_LOCALE=""
+    RSYNC_TEST_ARGS=""
+
+    zrb_rsync_run host:/srv /vault/data "" args
+
+    assert_equal "C" "$RSYNC_TEST_LOCALE" "local rsync locale" &&
+        [[ $RSYNC_TEST_ARGS == *"--rsync-path LC_ALL=C sudo rsync"* ]]
+}
+
 test_run_accepts_status_23_for_changed_source_file() {
     local -a args=()
 
@@ -108,6 +127,7 @@ for test_name in \
     test_status_24_is_accepted \
     test_other_status_is_rejected \
     test_run_accepts_status_23_for_vanished_source_file \
+    test_run_uses_stable_locale \
     test_run_accepts_status_23_for_changed_source_file \
     test_run_rejects_status_23_for_permission_error \
     test_run_preserves_failure_status

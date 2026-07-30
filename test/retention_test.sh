@@ -196,6 +196,50 @@ test_all_frequency_configurations() {
     cleanup_destroy_log
 }
 
+test_shell_code_in_config_is_rejected() {
+    local test_dir
+    local global_config
+    local marker_file
+    local retention_period=""
+    local minimum_count=""
+
+    test_dir=$(mktemp -d)
+
+    global_config="$test_dir/global"
+    marker_file="$test_dir/executed"
+
+    # shellcheck disable=SC2016 # The command substitution must remain literal in the generated configuration.
+    printf 'expire_daily="$(touch %s)"\n' "$marker_file" > "$global_config"
+
+    echo 'least_keep_count_daily="1"' >> "$global_config"
+
+    ( ! zrb_retention_load_config retention_period minimum_count daily "$global_config" "$test_dir/missing-vault-config" )
+    assert_path_missing "$marker_file"
+
+    rm -f "$global_config"
+    rmdir "$test_dir"
+}
+
+test_unknown_config_key_is_rejected() {
+    local test_dir
+    local global_config
+    local retention_period=""
+    local minimum_count=""
+
+    test_dir=$(mktemp -d)
+
+    global_config="$test_dir/global"
+
+    echo 'expire_daily="14 days"' > "$global_config"
+    echo 'least_keep_count_daily="1"' >> "$global_config"
+    echo 'run_after_expiration="dangerous-command"' >> "$global_config"
+
+    ( ! zrb_retention_load_config retention_period minimum_count daily "$global_config" "$test_dir/missing-vault-config" )
+
+    rm -f "$global_config"
+    rmdir "$test_dir"
+}
+
 failures=0
 
 for test_name in \
@@ -207,7 +251,9 @@ for test_name in \
     test_destroy_failure_is_returned \
     test_list_failure_is_returned \
     test_vault_config_overrides_global_config \
-    test_all_frequency_configurations
+    test_all_frequency_configurations \
+    test_shell_code_in_config_is_rejected \
+    test_unknown_config_key_is_rejected
 do
     run_test "$test_name" || failures=$((failures + 1))
 done
