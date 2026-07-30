@@ -61,7 +61,7 @@ test_reject_active_lock() {
     active_pid=$!
     echo "$active_pid" > "$lock_file"
 
-    if ( zrb_lock_create "$lock_file" zrb.sh photos root ); then
+    if { zrb_lock_create "$lock_file" zrb.sh photos root; }; then
         kill "$active_pid"
         wait "$active_pid" 2>/dev/null
 

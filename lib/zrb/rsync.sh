@@ -79,7 +79,7 @@ zrb_rsync_run() {
     "${command[@]}"
     status=$?
 
-    if zrb_rsync_status_is_acceptable "$status"; then
+    if { zrb_rsync_status_is_acceptable "$status"; }; then
         return 0
     fi
 

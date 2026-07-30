@@ -29,14 +29,14 @@ zrb_vault_create() {
         return 1
     fi
 
-    if zfs list -s name "$backup_dataset/$vault_name" > /dev/null 2>&1; then
+    if { zfs list -s name "$backup_dataset/$vault_name" > /dev/null 2>&1; }; then
         f_say "$C_RED Cannot add vault!"
         f_say "$C_RED Existing dataset: $backup_dataset/$vault_name !"
 
         return 1
     fi
 
-    if ! zfs create "$backup_dataset/$vault_name"; then
+    if ! { zfs create "$backup_dataset/$vault_name"; }; then
         f_say "$C_RED Cannot create dataset:"
         f_say "$C_RED $ zfs create $backup_dataset/$vault_name"
 
@@ -88,7 +88,7 @@ zrb_vault_validate() {
     local vault_name=$6
     local notify_address=$7
 
-    if ! zfs list -s name "$dataset_name" > /dev/null 2>&1; then
+    if ! { zfs list -s name "$dataset_name" > /dev/null 2>&1; }; then
         zrb_vault_report_error "Non-existent dataset for vault: $dataset_name !" "$vault_name" "$notify_address"
 
         return 1
@@ -188,7 +188,7 @@ zrb_vault_add_notify_address() {
         return 0
     fi
 
-    if ! echo "$vault_notify_address" | grep -q @; then
+    if ! { echo "$vault_notify_address" | grep -q @; }; then
         f_say "$C_RED $vault_notify_address is not a valid email address"
 
         return 1

@@ -27,7 +27,7 @@ zrb_lock_create() {
     lock_read_status=$?
 
     if [ "$lock_read_status" -eq 0 ]; then
-        if zrb_lock_process_matches "$pid_locked" "$script_basename" "$vault_name"; then
+        if { zrb_lock_process_matches "$pid_locked" "$script_basename" "$vault_name"; }; then
             echo "Backup job is already running!" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
             f_say "$C_RED Backup job is already running!"
 

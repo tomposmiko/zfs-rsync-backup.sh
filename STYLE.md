@@ -12,11 +12,15 @@ if [ "$status" -ne 0 ]; then
 fi
 ```
 
-Run command-based conditions directly. Use a subshell only when the command must be isolated from the caller:
+Group command-based conditions with braces for visual separation without creating a subshell:
 
 ```bash
-if zfs create "$dataset"; then
+if { zfs create "$dataset"; }; then
     initialize_vault
+fi
+
+if ! { validate_config; }; then
+    handle_error
 fi
 
 if [ -n "$vault" ]; then
@@ -24,7 +28,7 @@ if [ -n "$vault" ]; then
 fi
 ```
 
-Do not run functions that assign caller state inside a subshell. Capture their status before testing it:
+Braces run in the current shell and preserve caller state. Use parentheses only when isolation is required. Do not run functions that assign caller state inside a subshell. Capture their status before testing it:
 
 ```bash
 load_config retention_period minimum_count

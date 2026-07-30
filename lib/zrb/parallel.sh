@@ -64,7 +64,7 @@ zrb_parallel_list_vaults() {
     local has_child
     local -a datasets=()
 
-    if ! zfs list -H -s name -o name "$backup_dataset" > /dev/null; then
+    if ! { zfs list -H -s name -o name "$backup_dataset" > /dev/null; }; then
         f_say "$C_RED    Unable to access the ZFS dataset: '$backup_dataset'"
 
         return 1
@@ -104,7 +104,7 @@ zrb_parallel_lock_create() {
     lock_read_status=$?
 
     if [ "$lock_read_status" -eq 0 ]; then
-        if ps --no-headers -o args -p "$pid_locked" | grep -q "$script_basename"; then
+        if { ps --no-headers -o args -p "$pid_locked" | grep -q "$script_basename"; }; then
             f_say "$C_RED $script_basename is already running!"
 
             return 1

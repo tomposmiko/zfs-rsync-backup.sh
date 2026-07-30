@@ -109,7 +109,7 @@ zrb_source_check_remote_access() {
 
     backup_host=$(zrb_source_remote_host "$source_path") || return 0
 
-    if ! zrb_source_remote_accessible "$source_path" "$ssh_config"; then
+    if ! { zrb_source_remote_accessible "$source_path" "$ssh_config"; }; then
         echo "Host $backup_host is not accessible!" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
         f_say "$C_RED Host $backup_host is not accessible!"
 
