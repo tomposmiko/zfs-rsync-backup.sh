@@ -76,7 +76,7 @@ test_accessible_remote_source_passes() {
     SSH_TEST_STATUS=0
     zrb_source_check_remote_access backup@example.com:/srv/data "" photos root
 
-    assert_equal "backup@example.com test -d -- /srv/data" "$SSH_TEST_ARGS" "remote directory check"
+    assert_equal "backup@example.com test -d /srv/data" "$SSH_TEST_ARGS" "remote directory check"
 }
 
 test_inaccessible_remote_source_fails() {

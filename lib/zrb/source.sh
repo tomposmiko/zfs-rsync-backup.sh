@@ -111,7 +111,7 @@ zrb_source_remote_accessible() {
 
     if { remote_path=$(zrb_source_remote_path "$source_path"); }; then
         printf -v quoted_remote_path '%q' "$remote_path"
-        remote_command="test -d -- $quoted_remote_path"
+        remote_command="test -d $quoted_remote_path"
     fi
 
     if [ -n "$ssh_config" ]; then
