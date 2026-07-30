@@ -214,8 +214,6 @@ zrb_main() {
             zrb_retention_run "$vault_dataset" "$SNAPSHOT_PREFIX" "$freq_type" "$global_expire" "$backup_vault_conf/expire" "$vault" "$email_notify_address" || exit 1
         fi
     done
-
-    echo
 }
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then

@@ -282,13 +282,13 @@ zrb_preflight_run() {
         fi
 
         if ! { zrb_source_remote_accessible "$source_path" "$ssh_config"; }; then
-            zrb_preflight_fail "Remote source is not accessible: $source_path"
+            zrb_preflight_fail "Remote source is inaccessible: $source_path"
             check_status=1
         else
             remote_host=$(zrb_source_remote_host "$source_path") || true
 
             if [ -n "$remote_host" ]; then
-                zrb_preflight_pass "Remote source is accessible through SSH: $remote_host"
+                zrb_preflight_pass "Remote source is accessible through SSH: $source_path"
             else
                 zrb_preflight_pass "SSH validation is not required for a local source"
             fi

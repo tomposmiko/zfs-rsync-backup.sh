@@ -10,9 +10,12 @@ source "$(dirname "${BASH_SOURCE[0]}")/test_helper.sh"
 source "$TEST_ROOT/lib/zrb/source.sh"
 
 SSH_TEST_STATUS=0
+SSH_TEST_ARGS=""
 C_RED=""
 
 ssh() {
+    SSH_TEST_ARGS=$*
+
     return "$SSH_TEST_STATUS"
 }
 
@@ -36,12 +39,24 @@ test_remote_source_returns_host() {
     assert_equal "backup@example.com" "$host" "remote host"
 }
 
+test_remote_source_returns_path() {
+    local remote_path
+
+    remote_path=$(zrb_source_remote_path backup@example.com:/srv/data)
+
+    assert_equal "/srv/data" "$remote_path" "remote path"
+}
+
 test_rsync_module_source_returns_host() {
     local host
 
     host=$(zrb_source_remote_host backup.example.com::module)
 
     assert_equal "backup.example.com" "$host" "rsync module host"
+}
+
+test_rsync_module_has_no_ssh_path() {
+    ( ! zrb_source_remote_path backup.example.com::module )
 }
 
 test_missing_ssh_config_returns_empty() {
@@ -60,6 +75,8 @@ test_local_source_skips_ssh_check() {
 test_accessible_remote_source_passes() {
     SSH_TEST_STATUS=0
     zrb_source_check_remote_access backup@example.com:/srv/data "" photos root
+
+    assert_equal "backup@example.com test -d -- /srv/data" "$SSH_TEST_ARGS" "remote directory check"
 }
 
 test_inaccessible_remote_source_fails() {
@@ -112,7 +129,9 @@ failures=0
 for test_name in \
     test_local_source_has_no_remote_host \
     test_remote_source_returns_host \
+    test_remote_source_returns_path \
     test_rsync_module_source_returns_host \
+    test_rsync_module_has_no_ssh_path \
     test_missing_ssh_config_returns_empty \
     test_local_source_skips_ssh_check \
     test_accessible_remote_source_passes \

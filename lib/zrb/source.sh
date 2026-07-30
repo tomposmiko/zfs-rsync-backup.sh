@@ -17,6 +17,22 @@ zrb_source_remote_host() {
     return 1
 }
 
+zrb_source_remote_path() {
+    local source_path=$1
+
+    if [[ $source_path == /* ]] || [[ $source_path == *::* ]]; then
+        return 1
+    fi
+
+    if [[ $source_path =~ ^[0-9a-z@.-]+:(.+)$ ]]; then
+        echo "${BASH_REMATCH[1]}"
+
+        return 0
+    fi
+
+    return 1
+}
+
 zrb_source_ssh_config() {
     local config_file=$1
 
@@ -86,9 +102,17 @@ zrb_source_remote_accessible() {
     local source_path=$1
     local ssh_config=$2
     local backup_host
+    local remote_path
+    local quoted_remote_path
+    local remote_command="echo -n"
     local -a ssh_args=()
 
     backup_host=$(zrb_source_remote_host "$source_path") || return 0
+
+    if { remote_path=$(zrb_source_remote_path "$source_path"); }; then
+        printf -v quoted_remote_path '%q' "$remote_path"
+        remote_command="test -d -- $quoted_remote_path"
+    fi
 
     if [ -n "$ssh_config" ]; then
         ssh_args+=(
@@ -97,7 +121,8 @@ zrb_source_remote_accessible() {
         )
     fi
 
-    ssh "${ssh_args[@]}" "$backup_host" "echo -n" 2>/dev/null
+    # shellcheck disable=SC2029 # The configured remote path is shell-escaped with printf %q.
+    ssh "${ssh_args[@]}" "$backup_host" "$remote_command" 2>/dev/null
 }
 
 zrb_source_check_remote_access() {
@@ -105,13 +130,13 @@ zrb_source_check_remote_access() {
     local ssh_config=$2
     local vault_name=$3
     local notify_address=$4
-    local backup_host
 
-    backup_host=$(zrb_source_remote_host "$source_path") || return 0
+    zrb_source_remote_host "$source_path" > /dev/null || return 0
 
     if ! { zrb_source_remote_accessible "$source_path" "$ssh_config"; }; then
-        echo "Host $backup_host is not accessible!" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
-        f_say "$C_RED Host $backup_host is not accessible!"
+        echo "Remote source is inaccessible: $source_path" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
+
+        f_say "$C_RED        ERROR:${C_NOCOLOR:-} Remote source is inaccessible: $source_path"
 
         return 1
     fi
