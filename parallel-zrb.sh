@@ -62,7 +62,7 @@ zrb_parallel_main() {
     zrb_parallel_lock_create "$lock_file" "$script_basename" || return 1
 
     if ! { zrb_parallel_list_vaults "$BACKUP_DATASET" > "$vaults_file"; }; then
-        zrb_lock_remove "$lock_file"
+        zrb_parallel_lock_remove "$lock_file"
 
         return 1
     fi
@@ -76,7 +76,7 @@ zrb_parallel_main() {
     echo
     zrb_parallel_print_timestamp "FINISH: "
 
-    zrb_lock_remove "$lock_file"
+    zrb_parallel_lock_remove "$lock_file"
 
     return "$run_status"
 }

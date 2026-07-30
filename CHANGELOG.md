@@ -28,7 +28,10 @@ CHANGELOG
 - Fixed the parallel-runner lock filename initialization order and obsolete cron command name.
 - Fixed absolute path handling for configuration directories, exclude files, and local backup sources.
 - Fixed missing SSH source directories being accepted as rsync status 23 by validating the configured remote directory before backup and snapshot creation.
-- Fixed repeated runs failing when the exact target snapshot already exists; existing snapshots are now reported and skipped.
+- Fixed exact snapshot-name collisions being silently accepted; an existing target snapshot now fails the run.
+- Fixed successful completion being recorded before hooks, snapshots, and retention finished.
+- Fixed pre-run and post-run hook failures being ignored.
+- Fixed race-prone PID lock creation by using atomic kernel-backed locks while retaining PID files for inspection and crash diagnostics.
 - Fixed interrupted runs leaving a lock without a failure marker by handling signals explicitly, ignoring repeated signals during cleanup, creating `FAILED` before removing `RUNNING`, and marking armed cleanups as failed unconditionally.
 - Fixed snapshot retention matching so unrelated and malformed snapshots are ignored.
 - Fixed snapshot creation, listing, destruction, rsync, ZFS discovery, and GNU Parallel failures so they propagate correctly.

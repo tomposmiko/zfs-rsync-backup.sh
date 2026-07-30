@@ -4,39 +4,42 @@ zrb_lock_remove() {
     local lock_file=$1
 
     rm -f "$lock_file"
-}
 
-zrb_lock_process_matches() {
-    local pid=$1
-    local script_basename=$2
-    local vault_name=$3
+    if [ -n "${ZRB_LOCK_FD:-}" ]; then
+        flock -u "$ZRB_LOCK_FD"
+        exec {ZRB_LOCK_FD}>&-
 
-    # shellcheck disable=SC2009
-    ps --no-headers -o args -p "$pid" | grep -q "${script_basename}.* ${vault_name}"
+        unset ZRB_LOCK_FD
+    fi
 }
 
 zrb_lock_create() {
     local lock_file=$1
-    local script_basename=$2
     local vault_name=$3
     local notify_address=$4
     local pid_locked
-    local lock_read_status
+    local lock_status
 
-    pid_locked=$(cat "$lock_file" 2>/dev/null)
-    lock_read_status=$?
+    exec {ZRB_LOCK_FD}<>"$lock_file" || return 1
+    flock -n "$ZRB_LOCK_FD"
+    lock_status=$?
 
-    if [ "$lock_read_status" -eq 0 ]; then
-        if { zrb_lock_process_matches "$pid_locked" "$script_basename" "$vault_name"; }; then
-            echo "Backup job is already running!" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
-            f_say "$C_RED Backup job is already running!"
+    if [ "$lock_status" -ne 0 ]; then
+        exec {ZRB_LOCK_FD}>&-
 
-            return 1
-        fi
+        unset ZRB_LOCK_FD
 
-        f_say "${C_YELLOW:-}        WARNING:${C_NOCOLOR:-} Stale pidfile exists; removing it."
-        zrb_lock_remove "$lock_file"
+        echo "Backup job is already running!" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
+        f_say "$C_RED Backup job is already running!"
+
+        return 1
     fi
 
-    echo "$$" > "$lock_file"
+    pid_locked=$(<"$lock_file")
+
+    if [ -n "$pid_locked" ]; then
+        f_say "${C_YELLOW:-}        WARNING:${C_NOCOLOR:-} Stale pidfile exists; replacing it."
+    fi
+
+    printf '%s\n' "$$" > "$lock_file"
 }

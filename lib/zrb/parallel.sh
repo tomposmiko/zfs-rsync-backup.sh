@@ -104,23 +104,42 @@ zrb_parallel_lock_create() {
     local lock_file=$1
     local script_basename=$2
     local pid_locked
-    local lock_read_status
+    local lock_status
 
-    pid_locked=$(cat "$lock_file" 2>/dev/null)
-    lock_read_status=$?
+    exec {ZRB_PARALLEL_LOCK_FD}<>"$lock_file" || return 1
+    flock -n "$ZRB_PARALLEL_LOCK_FD"
+    lock_status=$?
 
-    if [ "$lock_read_status" -eq 0 ]; then
-        if { ps --no-headers -o args -p "$pid_locked" | grep -q "$script_basename"; }; then
-            f_say "$C_RED $script_basename is already running!"
+    if [ "$lock_status" -ne 0 ]; then
+        exec {ZRB_PARALLEL_LOCK_FD}>&-
 
-            return 1
-        fi
+        unset ZRB_PARALLEL_LOCK_FD
 
-        f_say "$C_PURPLE Stale pidfile exists...removing."
-        zrb_lock_remove "$lock_file"
+        f_say "$C_RED $script_basename is already running!"
+
+        return 1
     fi
 
-    echo "$$" > "$lock_file"
+    pid_locked=$(<"$lock_file")
+
+    if [ -n "$pid_locked" ]; then
+        f_say "$C_PURPLE Stale pidfile exists; replacing it."
+    fi
+
+    printf '%s\n' "$$" > "$lock_file"
+}
+
+zrb_parallel_lock_remove() {
+    local lock_file=$1
+
+    rm -f "$lock_file"
+
+    if [ -n "${ZRB_PARALLEL_LOCK_FD:-}" ]; then
+        flock -u "$ZRB_PARALLEL_LOCK_FD"
+        exec {ZRB_PARALLEL_LOCK_FD}>&-
+
+        unset ZRB_PARALLEL_LOCK_FD
+    fi
 }
 
 zrb_parallel_run_jobs() {

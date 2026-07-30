@@ -253,7 +253,7 @@ zrb_preflight_run() {
     ZRB_PREFLIGHT_PASS_COUNT=0
     ZRB_PREFLIGHT_FAIL_COUNT=0
 
-    zrb_preflight_commands bash date grep mail ps rsync ssh zfs || check_status=1
+    zrb_preflight_commands bash date flock grep mail ps rsync ssh zfs || check_status=1
     zrb_preflight_dataset "$backup_dataset" "Backup dataset" || check_status=1
     zrb_preflight_dataset "$vault_dataset" "Vault dataset" || check_status=1
     zrb_preflight_directory "$vault_root" "Vault directory" || check_status=1

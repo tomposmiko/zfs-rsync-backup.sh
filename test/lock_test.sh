@@ -55,27 +55,26 @@ test_replace_stale_lock() {
 test_reject_active_lock() {
     local test_dir
     local lock_file
-    local active_pid
+    local active_lock_fd
 
     test_dir=$(mktemp -d)
 
     lock_file="$test_dir/lock"
 
-    bash -c 'while :; do sleep 1; done' zrb.sh photos &
-    active_pid=$!
-    echo "$active_pid" > "$lock_file"
+    exec {active_lock_fd}<>"$lock_file"
+    flock -n "$active_lock_fd"
+
+    printf '%s\n' "$$" > "$lock_file"
 
     if { zrb_lock_create "$lock_file" zrb.sh photos root; }; then
-        kill "$active_pid"
-        wait "$active_pid" 2>/dev/null
-
         return 1
     fi
 
-    assert_equal "$active_pid" "$(<"$lock_file")" "active lock PID"
+    assert_equal "$$" "$(<"$lock_file")" "active lock PID"
 
-    kill "$active_pid"
-    wait "$active_pid" 2>/dev/null
+    flock -u "$active_lock_fd"
+    exec {active_lock_fd}>&-
+
     zrb_lock_remove "$lock_file"
     rmdir "$test_dir"
 }

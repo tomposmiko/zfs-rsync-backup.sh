@@ -135,7 +135,7 @@ test_preflight_reports_multiple_failures() {
     assert_file_contains "$test_dir/check.out" "FAIL: Vault source file is not readable: $vault_root/config/source" || test_status=1
     assert_file_contains "$test_dir/check.out" "PASS: Hook is not configured: $vault_root/config/pre-run.sh" || test_status=1
     assert_file_contains "$test_dir/check.out" "PASS: Retention validation is not required for mode 'no'" || test_status=1
-    assert_file_contains "$test_dir/check.out" "FAIL: Preflight check failed: 19 checks passed, 5 checks failed." || test_status=1
+    assert_file_contains "$test_dir/check.out" "FAIL: Preflight check failed: 20 checks passed, 5 checks failed." || test_status=1
     assert_file_empty "$zfs_log" || test_status=1
 
     rm -rf "$test_dir"

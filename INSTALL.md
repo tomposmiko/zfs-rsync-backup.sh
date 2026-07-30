@@ -1,5 +1,7 @@
 # Installation
 
+The active commands require Bash, `flock` from util-linux, rsync, OpenSSH, ZFS, GNU Parallel, and the standard utilities checked by `zrb.sh --check`.
+
 Install the commands and libraries under one directory so the entrypoints can resolve `lib/zrb` relative to themselves. A typical installation is:
 
 ```bash

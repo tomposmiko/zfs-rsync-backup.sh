@@ -82,7 +82,32 @@ test_replace_stale_parallel_lock() {
     zrb_parallel_lock_create "$lock_file" parallel-zrb.sh
     assert_equal "$$" "$(<"$lock_file")" "parallel lock PID"
 
-    zrb_lock_remove "$lock_file"
+    zrb_parallel_lock_remove "$lock_file"
+    rmdir "$test_dir"
+}
+
+test_reject_active_parallel_lock() {
+    local test_dir
+    local lock_file
+    local active_lock_fd
+
+    test_dir=$(mktemp -d)
+
+    lock_file="$test_dir/lock"
+
+    exec {active_lock_fd}<>"$lock_file"
+    flock -n "$active_lock_fd"
+
+    printf '%s\n' "$$" > "$lock_file"
+
+    ( ! zrb_parallel_lock_create "$lock_file" parallel-zrb.sh )
+
+    assert_equal "$$" "$(<"$lock_file")" "active parallel lock PID"
+
+    flock -u "$active_lock_fd"
+    exec {active_lock_fd}>&-
+
+    rm -f "$lock_file"
     rmdir "$test_dir"
 }
 
@@ -147,6 +172,7 @@ for test_name in \
     test_list_leaf_vaults \
     test_list_failure_is_returned \
     test_replace_stale_parallel_lock \
+    test_reject_active_parallel_lock \
     test_parallel_command \
     test_parallel_failure_is_returned \
     test_temp_cleanup
