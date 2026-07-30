@@ -37,12 +37,54 @@ zrb_rsync_build_args() {
     fi
 }
 
+zrb_rsync_diagnostics_only_report_source_changes() {
+    local diagnostics_file=$1
+    local diagnostic
+    local source_change_found=0
+
+    while IFS= read -r diagnostic || [ -n "$diagnostic" ]; do
+        case "$diagnostic" in
+            "")
+                ;;
+            "file has vanished: "*)
+                source_change_found=1
+                ;;
+            "rsync: ["*"] link_stat "*" failed: No such file or directory (2)")
+                source_change_found=1
+                ;;
+            "rsync: ["*"] readlink_stat("*") failed: No such file or directory (2)")
+                source_change_found=1
+                ;;
+            "ERROR: "*" failed verification -- update discarded.")
+                source_change_found=1
+                ;;
+            "rsync warning: some files vanished before they could be transferred"*)
+                ;;
+            "rsync error: some files/attrs were not transferred"*"code 23"*)
+                ;;
+            *)
+                return 1
+                ;;
+        esac
+    done < "$diagnostics_file"
+
+    [ "$source_change_found" -eq 1 ]
+}
+
 zrb_rsync_status_is_acceptable() {
     local status=$1
+    local diagnostics_file=${2:-}
 
     case "$status" in
-        0|23|24)
+        0|24)
             return 0
+            ;;
+        23)
+            if [ -z "$diagnostics_file" ]; then
+                return 1
+            fi
+
+            zrb_rsync_diagnostics_only_report_source_changes "$diagnostics_file"
             ;;
         *)
             return 1
@@ -56,6 +98,7 @@ zrb_rsync_run() {
     local ssh_config=$3
     local args_name=$4
     local -n rsync_args_ref=$args_name
+    local diagnostics_file
     local status
     local -a command=(
         rsync
@@ -76,12 +119,20 @@ zrb_rsync_run() {
         "$destination_path/"
     )
 
-    "${command[@]}"
+    diagnostics_file=$(mktemp) || return 1
+
+    "${command[@]}" 2> "$diagnostics_file"
     status=$?
 
-    if { zrb_rsync_status_is_acceptable "$status"; }; then
+    cat "$diagnostics_file" >&2
+
+    if { zrb_rsync_status_is_acceptable "$status" "$diagnostics_file"; }; then
+        rm -f "$diagnostics_file"
+
         return 0
     fi
+
+    rm -f "$diagnostics_file"
 
     return "$status"
 }

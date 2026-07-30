@@ -10,8 +10,11 @@ source "$(dirname "${BASH_SOURCE[0]}")/test_helper.sh"
 source "$TEST_ROOT/lib/zrb/rsync.sh"
 
 RSYNC_TEST_STATUS=0
+RSYNC_TEST_DIAGNOSTICS=""
 
 rsync() {
+    printf '%s' "$RSYNC_TEST_DIAGNOSTICS" >&2
+
     return "$RSYNC_TEST_STATUS"
 }
 
@@ -39,8 +42,8 @@ test_status_zero_is_accepted() {
     zrb_rsync_status_is_acceptable 0
 }
 
-test_status_23_is_accepted() {
-    zrb_rsync_status_is_acceptable 23
+test_status_23_without_diagnostics_is_rejected() {
+    ( ! zrb_rsync_status_is_acceptable 23 )
 }
 
 test_status_24_is_accepted() {
@@ -51,11 +54,35 @@ test_other_status_is_rejected() {
     ( ! zrb_rsync_status_is_acceptable 12 )
 }
 
-test_run_normalizes_accepted_status() {
+test_run_accepts_status_23_for_vanished_source_file() {
     local -a args=()
 
     RSYNC_TEST_STATUS=23
-    zrb_rsync_run host:/srv /vault/data "" args
+    RSYNC_TEST_DIAGNOSTICS=$'rsync: [sender] link_stat "/srv/file" failed: No such file or directory (2)\nrsync error: some files/attrs were not transferred (see previous errors) (code 23) at main.c(1338) [sender=3.2.7]\n'
+
+    zrb_rsync_run host:/srv /vault/data "" args 2> /dev/null
+}
+
+test_run_accepts_status_23_for_changed_source_file() {
+    local -a args=()
+
+    RSYNC_TEST_STATUS=23
+    RSYNC_TEST_DIAGNOSTICS=$'ERROR: media/shot.mov failed verification -- update discarded.\nrsync error: some files/attrs were not transferred (see previous errors) (code 23) at main.c(1338) [sender=3.2.7]\n'
+
+    zrb_rsync_run host:/srv /vault/data "" args 2> /dev/null
+}
+
+test_run_rejects_status_23_for_permission_error() {
+    local -a args=()
+    local status
+
+    RSYNC_TEST_STATUS=23
+    RSYNC_TEST_DIAGNOSTICS=$'rsync: [sender] send_files failed to open "/srv/private": Permission denied (13)\nrsync error: some files/attrs were not transferred (see previous errors) (code 23) at main.c(1338) [sender=3.2.7]\n'
+
+    zrb_rsync_run host:/srv /vault/data "" args 2> /dev/null
+    status=$?
+
+    assert_equal "23" "$status" "permission failure status"
 }
 
 test_run_preserves_failure_status() {
@@ -63,7 +90,9 @@ test_run_preserves_failure_status() {
     local status
 
     RSYNC_TEST_STATUS=12
-    zrb_rsync_run host:/srv /vault/data "" args
+    RSYNC_TEST_DIAGNOSTICS=""
+
+    zrb_rsync_run host:/srv /vault/data "" args 2> /dev/null
     status=$?
 
     assert_equal "12" "$status" "rsync failure status"
@@ -75,10 +104,12 @@ for test_name in \
     test_build_args \
     test_omit_empty_optional_args \
     test_status_zero_is_accepted \
-    test_status_23_is_accepted \
+    test_status_23_without_diagnostics_is_rejected \
     test_status_24_is_accepted \
     test_other_status_is_rejected \
-    test_run_normalizes_accepted_status \
+    test_run_accepts_status_23_for_vanished_source_file \
+    test_run_accepts_status_23_for_changed_source_file \
+    test_run_rejects_status_23_for_permission_error \
     test_run_preserves_failure_status
 do
     run_test "$test_name" || failures=$((failures + 1))

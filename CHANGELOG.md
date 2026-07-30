@@ -32,6 +32,7 @@ CHANGELOG
 - Fixed successful completion being recorded before hooks, snapshots, and retention finished.
 - Fixed pre-run and post-run hook failures being ignored.
 - Fixed race-prone PID lock creation by using atomic kernel-backed locks while retaining PID files for inspection and crash diagnostics.
+- Fixed all rsync status 23 failures being accepted; only diagnostics limited to vanished or changed source files are now tolerated.
 - Fixed interrupted runs leaving a lock without a failure marker by handling signals explicitly, ignoring repeated signals during cleanup, creating `FAILED` before removing `RUNNING`, and marking armed cleanups as failed unconditionally.
 - Fixed snapshot retention matching so unrelated and malformed snapshots are ignored.
 - Fixed snapshot creation, listing, destruction, rsync, ZFS discovery, and GNU Parallel failures so they propagate correctly.
@@ -43,7 +44,7 @@ CHANGELOG
 - Removed shell tracing from the deprecated rsync compatibility wrapper.
 
 ###### Compatibility
-- Rsync exit statuses `23` and `24` remain accepted to preserve the existing changed or vanished source-file behavior.
+- Rsync exit status `24` remains accepted, while status `23` is accepted only for recognized changed or vanished source-file diagnostics.
 - Legacy PID lock files and the legacy uppercase backup-dataset configuration filename remain supported.
 
 ##### v0.4
