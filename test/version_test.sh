@@ -15,9 +15,9 @@ test_active_commands_report_version() {
     parallel_version=$("$TEST_ROOT/parallel-zrb.sh" --version)
     client_version=$("$TEST_ROOT/zrb-client.sh" --version)
 
-    assert_equal "zrb 0.5" "$zrb_version" "zrb version" &&
-        assert_equal "parallel-zrb 0.5" "$parallel_version" "parallel version" &&
-        assert_equal "zrb-client 0.5" "$client_version" "client version"
+    assert_equal "zrb 0.6" "$zrb_version" "zrb version" &&
+        assert_equal "parallel-zrb 0.6" "$parallel_version" "parallel version" &&
+        assert_equal "zrb-client 0.6" "$client_version" "client version"
 }
 
 run_test test_active_commands_report_version
