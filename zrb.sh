@@ -67,7 +67,9 @@ zrb_main_cleanup() {
 zrb_main_handle_signal() {
     local status=$1
 
-    trap - EXIT INT TERM
+    trap - EXIT
+    trap '' INT TERM
+
     zrb_main_cleanup "$status"
 
     exit "$status"
