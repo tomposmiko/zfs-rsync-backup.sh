@@ -90,7 +90,7 @@ zrb_preflight_dataset() {
         return 1
     fi
 
-    if ( ! zfs list -s name "$dataset_name" > /dev/null 2>&1 ); then
+    if ( ! zrb_vault_dataset_exists "$dataset_name" ); then
         zrb_preflight_fail "$label does not exist or is not accessible: $dataset_name"
 
         return 1
@@ -103,16 +103,16 @@ zrb_preflight_source() {
     local target_name=$1
     local source_file=$2
     local -n source_ref=$target_name
-    local source_file_status
 
     source_ref=""
 
-    zrb_preflight_readable_file "$source_file" "Vault source file"
-    source_file_status=$?
+    if [ ! -f "$source_file" ] || [ ! -r "$source_file" ]; then
+        zrb_preflight_fail "Vault source file is not readable: $source_file"
 
-    if [ "$source_file_status" -ne 0 ]; then
         return 1
     fi
+
+    zrb_preflight_pass "Vault source file is readable: $source_file"
 
     source_ref=$(<"$source_file")
 

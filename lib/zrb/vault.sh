@@ -13,6 +13,12 @@ zrb_vault_report_error() {
     f_say "$C_RED $message"
 }
 
+zrb_vault_dataset_exists() {
+    local dataset_name=$1
+
+    zfs list -s name "$dataset_name" > /dev/null 2>&1
+}
+
 zrb_vault_create() {
     local backup_dataset=$1
     local vault_name=$2
@@ -29,7 +35,7 @@ zrb_vault_create() {
         return 1
     fi
 
-    if ( zfs list -s name "$backup_dataset/$vault_name" > /dev/null 2>&1 ); then
+    if ( zrb_vault_dataset_exists "$backup_dataset/$vault_name" ); then
         f_say "$C_RED Cannot add vault!"
         f_say "$C_RED Existing dataset: $backup_dataset/$vault_name !"
 
@@ -88,7 +94,7 @@ zrb_vault_validate() {
     local vault_name=$6
     local notify_address=$7
 
-    if ( ! zfs list -s name "$dataset_name" > /dev/null 2>&1 ); then
+    if ( ! zrb_vault_dataset_exists "$dataset_name" ); then
         zrb_vault_report_error "Non-existent dataset for vault: $dataset_name !" "$vault_name" "$notify_address"
 
         return 1
@@ -133,8 +139,8 @@ zrb_vault_load_source() {
     local -n source_ref=$target_name
     local source_file="$vault_config/source"
 
-    if [ ! -f "$source_file" ]; then
-        zrb_vault_report_error "Non-existent source file: $source_file !" "$vault_name" "$notify_address"
+    if [ ! -f "$source_file" ] || [ ! -r "$source_file" ]; then
+        zrb_vault_report_error "Non-existent or unreadable source file: $source_file !" "$vault_name" "$notify_address"
 
         return 1
     fi

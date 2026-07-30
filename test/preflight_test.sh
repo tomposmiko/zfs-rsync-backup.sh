@@ -12,6 +12,9 @@ source "$TEST_ROOT/lib/zrb/source.sh"
 # shellcheck source=lib/zrb/retention.sh
 source "$TEST_ROOT/lib/zrb/retention.sh"
 
+# shellcheck source=lib/zrb/vault.sh
+source "$TEST_ROOT/lib/zrb/vault.sh"
+
 # shellcheck source=lib/zrb/preflight.sh
 source "$TEST_ROOT/lib/zrb/preflight.sh"
 
