@@ -20,9 +20,9 @@ zrb_snapshot_create() {
     full_snapshot_name="$dataset@$snapshot_name"
 
     if { zfs list -H -o name -t snapshot "$full_snapshot_name" > /dev/null 2>&1; }; then
-        f_say "${C_YELLOW:-}        WARNING:${C_NOCOLOR:-} Snapshot already exists: $full_snapshot_name"
+        f_say "${C_RED:-}        ERROR:${C_NOCOLOR:-} Snapshot already exists: $full_snapshot_name"
 
-        return 0
+        return 1
     fi
 
     zfs snap "$full_snapshot_name"

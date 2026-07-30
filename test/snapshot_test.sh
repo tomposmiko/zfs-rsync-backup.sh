@@ -12,7 +12,7 @@ source "$TEST_ROOT/lib/zrb/snapshot.sh"
 ZFS_SNAPSHOT_STATUS=0
 ZFS_LIST_STATUS=1
 ZFS_SNAPSHOT_ARGUMENT=""
-C_YELLOW=""
+C_RED=""
 C_NOCOLOR=""
 
 zfs() {
@@ -49,9 +49,10 @@ test_snapshot_create() {
     assert_equal "tank/zrb/photos@archive_weekly_2026-07-29--12-30" "$ZFS_SNAPSHOT_ARGUMENT" "snapshot argument"
 }
 
-test_existing_snapshot_is_skipped() {
+test_existing_snapshot_fails() {
     local output
     local output_file
+    local snapshot_status
 
     ZFS_LIST_STATUS=0
     ZFS_SNAPSHOT_STATUS=0
@@ -60,9 +61,11 @@ test_existing_snapshot_is_skipped() {
     output_file=$(mktemp)
 
     zrb_snapshot_create tank/zrb/photos zrb daily 2026-07-29--12-30 > "$output_file"
+    snapshot_status=$?
     output=$(<"$output_file")
 
-    assert_equal "        WARNING: Snapshot already exists: tank/zrb/photos@zrb_daily_2026-07-29--12-30" "$output" "existing snapshot warning" &&
+    assert_equal "1" "$snapshot_status" "existing snapshot status" &&
+        assert_equal "        ERROR: Snapshot already exists: tank/zrb/photos@zrb_daily_2026-07-29--12-30" "$output" "existing snapshot error" &&
         assert_equal "" "$ZFS_SNAPSHOT_ARGUMENT" "existing snapshot is not created"
 
     rm -f "$output_file"
@@ -80,7 +83,7 @@ failures=0
 for test_name in \
     test_snapshot_name \
     test_snapshot_create \
-    test_existing_snapshot_is_skipped \
+    test_existing_snapshot_fails \
     test_snapshot_failure_is_returned
 do
     run_test "$test_name" || failures=$((failures + 1))

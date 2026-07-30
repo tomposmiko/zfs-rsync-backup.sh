@@ -80,6 +80,7 @@ zrb_main_handle_signal() {
 
 zrb_main() {
     local config_status
+    local hook_status
     local parse_status
 
     zrb_config_defaults
@@ -200,6 +201,13 @@ zrb_main() {
 
     zrb_completion_begin "$file_finished" "$file_running" "$file_failed" "$vault" "$email_notify_address"
     zrb_hook_run "$backup_vault_conf/pre-run.sh"
+    hook_status=$?
+
+    if [ "$hook_status" -ne 0 ]; then
+        f_say "${C_RED:-}        ERROR:${C_NOCOLOR:-} Pre-run hook failed with status $hook_status."
+
+        exit 1
+    fi
 
     ############################### rsync ################################
     date_start_epoch=0
@@ -215,6 +223,8 @@ zrb_main() {
     ############################### rsync ################################
 
     zrb_hook_run "$backup_vault_conf/post-run.sh"
+    hook_status=$?
+
     zrb_report_finish "$report_file" "$date_start_epoch" "$QUIET_NOTIFICATIONS"
 
     if [ "$rsync_ret" -ne 0 ]; then
@@ -224,12 +234,11 @@ zrb_main() {
         exit 1
     fi
 
-    zrb_completion_mark_success "$file_finished" "$file_running" "$file_failed" "$rsync_ret"
-    zrb_lock_remove "$lockfile"
-    ZRB_CLEANUP_ARMED=0
+    if [ "$hook_status" -ne 0 ]; then
+        f_say "${C_RED:-}        ERROR:${C_NOCOLOR:-} Post-run hook failed with status $hook_status."
 
-    trap - EXIT INT TERM
-    ################## doing rsync ####################
+        exit 1
+    fi
 
     for freq_type in $FREQ_LIST; do
         zrb_snapshot_create "$vault_dataset" "$SNAPSHOT_PREFIX" "$freq_type" "$ZRB_RUN_DATE" || exit 1
@@ -238,6 +247,14 @@ zrb_main() {
             zrb_retention_run "$vault_dataset" "$SNAPSHOT_PREFIX" "$freq_type" "$global_expire" "$backup_vault_conf/expire" "$vault" "$email_notify_address" || exit 1
         fi
     done
+
+    zrb_completion_mark_success "$file_finished" "$file_running" "$file_failed" "$rsync_ret"
+    zrb_lock_remove "$lockfile"
+
+    ZRB_CLEANUP_ARMED=0
+
+    trap - EXIT INT TERM
+    ################## doing rsync ####################
 }
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
