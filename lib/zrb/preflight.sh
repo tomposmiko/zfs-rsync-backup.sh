@@ -32,7 +32,7 @@ zrb_preflight_commands() {
     local check_status=0
 
     for command_name in "$@"; do
-        if ( ! command -v "$command_name" > /dev/null 2>&1 ); then
+        if ! command -v "$command_name" > /dev/null 2>&1; then
             zrb_preflight_fail "Missing required command: $command_name"
             check_status=1
         else
@@ -86,11 +86,11 @@ zrb_preflight_dataset() {
     local dataset_name=$1
     local label=$2
 
-    if ( ! command -v zfs > /dev/null 2>&1 ); then
+    if ! command -v zfs > /dev/null 2>&1; then
         return 1
     fi
 
-    if ( ! zrb_vault_dataset_exists "$dataset_name" ); then
+    if ! zfs list -s name "$dataset_name" > /dev/null 2>&1; then
         zrb_preflight_fail "$label does not exist or is not accessible: $dataset_name"
 
         return 1
@@ -181,7 +181,7 @@ zrb_preflight_hook() {
     local hook_file=$1
 
     if [ -f "$hook_file" ]; then
-        if ( ! bash -n "$hook_file" ); then
+        if ! bash -n "$hook_file"; then
             zrb_preflight_fail "Hook syntax is invalid: $hook_file"
 
             return 1
@@ -202,6 +202,7 @@ zrb_preflight_retention() {
     local retention_period
     local minimum_count
     local check_status=0
+    local retention_status
 
     if [ "$mode" == "no" ]; then
         zrb_preflight_pass "Retention validation is not required for mode 'no'"
@@ -213,7 +214,10 @@ zrb_preflight_retention() {
         retention_period=""
         minimum_count=""
 
-        if ( ! zrb_retention_load_config retention_period minimum_count "$frequency" "$global_config" "$vault_config" ); then
+        zrb_retention_load_config retention_period minimum_count "$frequency" "$global_config" "$vault_config"
+        retention_status=$?
+
+        if [ "$retention_status" -ne 0 ]; then
             zrb_preflight_fail "Invalid retention configuration for frequency '$frequency'."
             check_status=1
         else
@@ -277,7 +281,7 @@ zrb_preflight_run() {
             zrb_preflight_pass "Placeholder validation is not required for a remote source"
         fi
 
-        if ( ! zrb_source_remote_accessible "$source_path" "$ssh_config" ); then
+        if ! zrb_source_remote_accessible "$source_path" "$ssh_config"; then
             zrb_preflight_fail "Remote source is not accessible: $source_path"
             check_status=1
         else

@@ -6,7 +6,6 @@ CHANGELOG
 - Refactored the shell code into focused modules under `lib/zrb` while keeping thin executable entrypoints.
 - Reworked `zrb.sh` into an orchestration workflow for configuration, vaults, source validation, rsync, hooks, reporting, snapshots, retention, locking, and completion state.
 - Reworked `parallel-zrb.sh` to reuse shared modules, build commands as arrays, validate job counts, discover leaf vaults efficiently, and propagate failures.
-- Reused the ZFS dataset-accessibility check across normal vault handling and preflight reporting.
 - Made `backup_dataset` the canonical configuration filename while retaining compatibility with the legacy `BACKUP_DATASET` name.
 - Reorganized packaged configuration under `etc/zrb` and the cron example under `etc/cron.d`.
 - Moved the deprecated `rsync-novanished.sh` compatibility wrapper under `deprecated`; current rsync status handling lives in `lib/zrb/rsync.sh`.

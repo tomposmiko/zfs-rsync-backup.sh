@@ -122,7 +122,7 @@ zrb_main() {
 
     zrb_vault_validate "$vault_dataset" "$vault_root" "$backup_vault_conf" "$backup_vault_dest" "$backup_vault_log" "$vault" "$operation_notify_address" || exit 1
 
-    if ( zrb_vault_is_disabled "$backup_vault_conf" ); then
+    if zrb_vault_is_disabled "$backup_vault_conf"; then
         exit 0
     fi
 
@@ -136,7 +136,7 @@ zrb_main() {
 
     zrb_vault_add_notify_address email_notify_address "$backup_vault_conf" || exit 1
 
-    if ( zrb_retention_is_only_mode "$expire" ); then
+    if zrb_retention_is_only_mode "$expire"; then
         for freq_type in $FREQ_LIST; do
             zrb_retention_run "$vault_dataset" "$SNAPSHOT_PREFIX" "$freq_type" "$global_expire" "$backup_vault_conf/expire" "$vault" "$email_notify_address" || exit 1
         done
@@ -210,7 +210,7 @@ zrb_main() {
     for freq_type in $FREQ_LIST; do
         zrb_snapshot_create "$vault_dataset" "$SNAPSHOT_PREFIX" "$freq_type" "$ZRB_RUN_DATE" || exit 1
 
-        if ( zrb_retention_runs_after_snapshot "$expire" ); then
+        if zrb_retention_runs_after_snapshot "$expire"; then
             zrb_retention_run "$vault_dataset" "$SNAPSHOT_PREFIX" "$freq_type" "$global_expire" "$backup_vault_conf/expire" "$vault" "$email_notify_address" || exit 1
         fi
     done

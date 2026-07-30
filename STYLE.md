@@ -12,15 +12,26 @@ if [ "$status" -ne 0 ]; then
 fi
 ```
 
-Wrap command-based conditions in a subshell. Do not wrap test expressions:
+Run command-based conditions directly. Use a subshell only when the command must be isolated from the caller:
 
 ```bash
-if ( zfs create "$dataset" ); then
+if zfs create "$dataset"; then
     initialize_vault
 fi
 
 if [ -n "$vault" ]; then
     validate_vault
+fi
+```
+
+Do not run functions that assign caller state inside a subshell. Capture their status before testing it:
+
+```bash
+load_config retention_period minimum_count
+config_status=$?
+
+if [ "$config_status" -ne 0 ]; then
+    handle_error
 fi
 ```
 

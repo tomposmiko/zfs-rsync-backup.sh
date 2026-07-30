@@ -69,7 +69,7 @@ zrb_retention_apply() {
 
         f_say "$C_GREEN  ${dataset}@${snapshot_name}"
 
-        if ( ! zfs destroy "${dataset}@${snapshot_name}" ); then
+        if ! zfs destroy "${dataset}@${snapshot_name}"; then
             return 1
         fi
 

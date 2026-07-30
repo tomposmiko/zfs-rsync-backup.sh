@@ -101,7 +101,7 @@ zrb_client_ensure_user() {
     local client_user=$1
     local client_home=$2
 
-    if ( id -u "$client_user" > /dev/null 2>&1 ); then
+    if id -u "$client_user" > /dev/null 2>&1; then
         return 0
     fi
 
@@ -131,7 +131,7 @@ zrb_client_ensure_authorized_key() {
         install -m 0600 "${ownership_args[@]}" /dev/null "$authorized_keys" || return 1
     fi
 
-    if ( ! grep -Fqx "$public_key" "$authorized_keys" ); then
+    if ! grep -Fqx "$public_key" "$authorized_keys"; then
         echo "$public_key" >> "$authorized_keys" || return 1
     fi
 
@@ -148,13 +148,13 @@ zrb_client_install_sudoers() {
 
     printf "Cmnd_Alias C_ZRB = /usr/bin/rsync --server --sender -vlHogDtpre.iLsfxC --numeric-ids --inplace . //\n%s ALL=(ALL:ALL) NOPASSWD:C_ZRB\n" "$client_user" > "$temporary_file"
 
-    if ( ! visudo -cf "$temporary_file" ); then
+    if ! visudo -cf "$temporary_file"; then
         rm -f "$temporary_file"
 
         return 1
     fi
 
-    if ( ! install -m 0440 "$temporary_file" "$sudoers_file" ); then
+    if ! install -m 0440 "$temporary_file" "$sudoers_file"; then
         rm -f "$temporary_file"
 
         return 1

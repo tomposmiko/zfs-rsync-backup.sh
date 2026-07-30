@@ -119,6 +119,25 @@ test_invalid_notify_address_fails() {
     rmdir "$test_dir"
 }
 
+test_retention_values_survive_validation() {
+    local test_dir
+    local global_config
+    local output
+
+    test_dir=$(mktemp -d)
+    global_config="$test_dir/expire"
+
+    echo 'expire_daily="2 weeks"' > "$global_config"
+    echo 'least_keep_count_daily=3' >> "$global_config"
+
+    output=$(zrb_preflight_retention yes daily "$global_config" "$test_dir/vault-expire")
+
+    assert_equal "PASS: Retention configuration is valid for 'daily': period '2 weeks', minimum '3'" "$output" "retention preflight values"
+
+    rm -f "$global_config"
+    rmdir "$test_dir"
+}
+
 test_valid_hook_syntax() {
     local test_dir
     local hook_file
@@ -166,6 +185,7 @@ for test_name in \
     test_failure_summary_reports_counts \
     test_conflicting_excludes_fail \
     test_invalid_notify_address_fails \
+    test_retention_values_survive_validation \
     test_valid_hook_syntax \
     test_invalid_hook_syntax_fails \
     test_missing_required_file_fails \
