@@ -10,7 +10,7 @@ create_stub_commands() {
     local stub_dir=$1
 
     # shellcheck disable=SC2016 # Variables are expanded when the generated stub runs.
-    printf '#!/bin/bash\ncase "$1" in\n    list)\n        exit 0\n        ;;\n    snap)\n        echo "$2" >> "$ZFS_TEST_LOG"\n        exit 0\n        ;;\n    destroy)\n        exit 0\n        ;;\nesac\n' > "$stub_dir/zfs"
+    printf '#!/bin/bash\ncase "$1" in\n    list)\n        if [[ " $* " == *"@"* ]]; then\n            exit "${ZFS_SNAPSHOT_EXISTS_STATUS:-1}"\n        fi\n\n        exit 0\n        ;;\n    snap)\n        echo "$2" >> "$ZFS_TEST_LOG"\n        exit 0\n        ;;\n    destroy)\n        exit 0\n        ;;\nesac\n' > "$stub_dir/zfs"
     printf '#!/bin/bash\nexit 0\n' > "$stub_dir/rsync"
     printf '#!/bin/bash\ncat > /dev/null\nexit 0\n' > "$stub_dir/mail"
 
