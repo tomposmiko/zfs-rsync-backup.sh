@@ -93,6 +93,7 @@ test_conflicting_excludes_fail() {
     local vault_exclude_file
 
     test_dir=$(mktemp -d)
+
     parameter_exclude_file="$test_dir/parameter-exclude"
     vault_exclude_file="$test_dir/vault-exclude"
 
@@ -109,6 +110,7 @@ test_invalid_notify_address_fails() {
     local notify_file
 
     test_dir=$(mktemp -d)
+
     notify_file="$test_dir/notify"
 
     echo "invalid-address" > "$notify_file"
@@ -125,6 +127,7 @@ test_retention_values_survive_validation() {
     local output
 
     test_dir=$(mktemp -d)
+
     global_config="$test_dir/expire"
 
     echo 'expire_daily="2 weeks"' > "$global_config"
@@ -143,7 +146,9 @@ test_valid_hook_syntax() {
     local hook_file
 
     test_dir=$(mktemp -d)
+
     hook_file="$test_dir/hook.sh"
+
     echo "echo valid" > "$hook_file"
 
     zrb_preflight_hook "$hook_file"
@@ -157,7 +162,9 @@ test_invalid_hook_syntax_fails() {
     local hook_file
 
     test_dir=$(mktemp -d)
+
     hook_file="$test_dir/hook.sh"
+
     echo "if then" > "$hook_file"
 
     ( ! zrb_preflight_hook "$hook_file" > /dev/null 2>&1 )

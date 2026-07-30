@@ -58,8 +58,10 @@ test_write_report() {
     local start_epoch=0
 
     test_dir=$(mktemp -d)
+
     report_file="$test_dir/report.txt"
     DATE_COUNTER_FILE="$test_dir/date-counter"
+
     echo 0 > "$DATE_COUNTER_FILE"
 
     zrb_report_begin start_epoch "$report_file" 1

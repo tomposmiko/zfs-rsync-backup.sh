@@ -98,6 +98,7 @@ test_vault_placeholder_overrides_global_placeholder() {
     local test_dir
 
     test_dir=$(mktemp -d)
+
     echo "global-marker" > "$test_dir/global-placeholder"
     echo "vault-marker" > "$test_dir/vault-placeholder"
     touch "$test_dir/vault-marker"
@@ -112,6 +113,7 @@ test_missing_placeholder_fails() {
     local test_dir
 
     test_dir=$(mktemp -d)
+
     echo "missing-marker" > "$test_dir/placeholder"
 
     ( ! zrb_source_validate_placeholder "$test_dir" "$test_dir/placeholder" "$test_dir/missing-vault" photos root )

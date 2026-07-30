@@ -31,6 +31,7 @@ test_complete_local_backup() {
     local test_status=0
 
     test_dir=$(mktemp -d)
+
     stub_dir="$test_dir/bin"
     config_dir="$test_dir/config"
     source_dir="$test_dir/source"
@@ -94,6 +95,7 @@ test_preflight_reports_multiple_failures() {
     local test_status=0
 
     test_dir=$(mktemp -d)
+
     stub_dir="$test_dir/bin"
     config_dir="$test_dir/config"
     sbin_dir="$test_dir/sbin"
@@ -139,6 +141,7 @@ test_missing_remote_source_prevents_snapshot() {
     local test_status=0
 
     test_dir=$(mktemp -d)
+
     stub_dir="$test_dir/bin"
     config_dir="$test_dir/config"
     sbin_dir="$test_dir/sbin"

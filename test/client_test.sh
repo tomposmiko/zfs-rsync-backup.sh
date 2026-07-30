@@ -58,7 +58,9 @@ test_invalid_key_is_rejected() {
     local public_key=""
 
     test_dir=$(mktemp -d)
+
     key_file="$test_dir/key.pub"
+
     echo "not-a-public-key" > "$key_file"
 
     ( ! zrb_client_read_public_key public_key "$key_file" )
@@ -73,11 +75,13 @@ test_dry_run_does_not_apply_changes() {
     local output
 
     test_dir=$(mktemp -d)
+
     key_file="$test_dir/key.pub"
-    echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestKey backup" > "$key_file"
     ZRB_CLIENT_ROOT="$test_dir/root"
     APT_CALLS=0
     USERADD_CALLS=0
+
+    echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestKey backup" > "$key_file"
 
     output=$(zrb_client_apply backup-zrb "$key_file" 1)
 
@@ -98,11 +102,13 @@ test_apply_is_idempotent() {
     local key_count
 
     test_dir=$(mktemp -d)
+
     key_file="$test_dir/key.pub"
-    echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestKey backup" > "$key_file"
     ZRB_CLIENT_ROOT="$test_dir/root"
     authorized_keys="$ZRB_CLIENT_ROOT/home/backup-zrb/.ssh/authorized_keys"
     sudoers_file="$ZRB_CLIENT_ROOT/etc/sudoers.d/zrb"
+
+    echo "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITestKey backup" > "$key_file"
     mkdir -p "$ZRB_CLIENT_ROOT/home" "$ZRB_CLIENT_ROOT/etc/sudoers.d"
 
     zrb_client_apply backup-zrb "$key_file" 0
@@ -122,6 +128,7 @@ test_invalid_sudoers_is_not_installed() {
     local sudoers_file
 
     test_dir=$(mktemp -d)
+
     sudoers_file="$test_dir/zrb"
     VISUDO_STATUS=1
 

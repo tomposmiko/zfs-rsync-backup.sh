@@ -45,8 +45,6 @@ zrb_completion_mark_failed() {
     local running_file=$1
     local failed_file=$2
 
-    if [ -f "$running_file" ]; then
-        rm -f "$running_file"
-        touch "$failed_file"
-    fi
+    rm -f "$running_file"
+    touch "$failed_file"
 }

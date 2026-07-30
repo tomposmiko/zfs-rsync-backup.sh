@@ -153,9 +153,11 @@ test_vault_config_overrides_global_config() {
 
     setup_destroy_log
     test_dir=$(mktemp -d)
+
     global_config="$test_dir/global"
     vault_config="$test_dir/vault"
     ZFS_LIST_OUTPUT=$'tank/zrb/photos@zrb_daily_2024-01-01--00-00\ntank/zrb/photos@zrb_daily_2024-01-02--00-00'
+
     echo 'expire_daily="14 days"' > "$global_config"
     echo 'least_keep_count_daily="2"' >> "$global_config"
     echo 'least_keep_count_daily="1"' > "$vault_config"
@@ -176,6 +178,7 @@ test_all_frequency_configurations() {
 
     setup_destroy_log
     test_dir=$(mktemp -d)
+
     global_config="$test_dir/global"
     ZFS_LIST_OUTPUT=""
 

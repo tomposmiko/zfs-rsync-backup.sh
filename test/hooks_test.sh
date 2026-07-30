@@ -19,6 +19,7 @@ test_hook_executes() {
     local output_file
 
     test_dir=$(mktemp -d)
+
     hook_file="$test_dir/hook.sh"
     output_file="$test_dir/output"
 
@@ -36,6 +37,7 @@ test_hook_failure_is_returned() {
     local hook_file
 
     test_dir=$(mktemp -d)
+
     hook_file="$test_dir/hook.sh"
 
     printf "#!/bin/bash\nexit 7\n" > "$hook_file"

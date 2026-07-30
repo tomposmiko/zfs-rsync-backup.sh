@@ -29,8 +29,10 @@ test_validate_existing_vault() {
     local test_dir
 
     test_dir=$(mktemp -d)
-    mkdir "$test_dir/config" "$test_dir/data" "$test_dir/log"
+
     ZFS_TEST_STATUS=0
+
+    mkdir "$test_dir/config" "$test_dir/data" "$test_dir/log"
 
     zrb_vault_validate tank/zrb/photos "$test_dir" "$test_dir/config" "$test_dir/data" "$test_dir/log" photos root
 
@@ -41,8 +43,10 @@ test_validate_missing_dataset_fails() {
     local test_dir
 
     test_dir=$(mktemp -d)
-    mkdir "$test_dir/config" "$test_dir/data" "$test_dir/log"
+
     ZFS_TEST_STATUS=1
+
+    mkdir "$test_dir/config" "$test_dir/data" "$test_dir/log"
 
     ( ! zrb_vault_validate tank/zrb/photos "$test_dir" "$test_dir/config" "$test_dir/data" "$test_dir/log" photos root )
 
@@ -53,6 +57,7 @@ test_disabled_vault() {
     local test_dir
 
     test_dir=$(mktemp -d)
+
     touch "$test_dir/DISABLE"
 
     zrb_vault_is_disabled "$test_dir"
@@ -66,6 +71,7 @@ test_load_source() {
     local source_value=""
 
     test_dir=$(mktemp -d)
+
     echo "backup@example.com:/srv" > "$test_dir/source"
 
     zrb_vault_load_source source_value "$test_dir" photos root
@@ -95,6 +101,7 @@ test_reject_conflicting_excludes() {
     local vault_exclude=""
 
     test_dir=$(mktemp -d)
+
     touch "$test_dir/exclude"
 
     ( ! zrb_vault_resolve_excludes additional vault_exclude /tmp/shared-exclude "$test_dir" )
@@ -108,6 +115,7 @@ test_add_notify_address() {
     local notify_address="root"
 
     test_dir=$(mktemp -d)
+
     echo "backup@example.com" > "$test_dir/notify"
 
     zrb_vault_add_notify_address notify_address "$test_dir"
@@ -122,6 +130,7 @@ test_reject_invalid_notify_address() {
     local notify_address="root"
 
     test_dir=$(mktemp -d)
+
     echo "invalid-address" > "$test_dir/notify"
 
     ( ! zrb_vault_add_notify_address notify_address "$test_dir" )

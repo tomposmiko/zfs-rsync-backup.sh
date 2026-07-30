@@ -106,7 +106,9 @@ test_load_notify_address() {
     local notify_address=""
 
     test_dir=$(mktemp -d)
+
     notify_file="$test_dir/notify_address"
+
     echo "alerts@example.com" > "$notify_file"
 
     zrb_config_load_notify_address notify_address "$notify_file"
@@ -127,9 +129,11 @@ test_load_lowercase_backup_dataset() {
     local test_dir
 
     test_dir=$(mktemp -d)
+
+    GLOBAL_CONFIG_DIR=$test_dir
+
     echo "pool/lowercase" > "$test_dir/backup_dataset"
     echo "pool/legacy" > "$test_dir/BACKUP_DATASET"
-    GLOBAL_CONFIG_DIR=$test_dir
 
     zrb_config_load_backup_dataset
     assert_equal "pool/lowercase" "$BACKUP_DATASET" "lowercase backup dataset"
@@ -142,8 +146,10 @@ test_load_legacy_backup_dataset() {
     local test_dir
 
     test_dir=$(mktemp -d)
-    echo "pool/legacy" > "$test_dir/BACKUP_DATASET"
+
     GLOBAL_CONFIG_DIR=$test_dir
+
+    echo "pool/legacy" > "$test_dir/BACKUP_DATASET"
 
     zrb_config_load_backup_dataset
     assert_equal "pool/legacy" "$BACKUP_DATASET" "legacy backup dataset"

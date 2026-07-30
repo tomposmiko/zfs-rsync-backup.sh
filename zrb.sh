@@ -64,6 +64,15 @@ zrb_main_cleanup() {
     return "$status"
 }
 
+zrb_main_handle_signal() {
+    local status=$1
+
+    trap - EXIT INT TERM
+    zrb_main_cleanup "$status"
+
+    exit "$status"
+}
+
 zrb_main() {
     local config_status
 
@@ -171,8 +180,8 @@ zrb_main() {
     ZRB_CLEANUP_ARMED=1
 
     trap 'zrb_main_cleanup $?' EXIT
-    trap 'exit 130' INT
-    trap 'exit 143' TERM
+    trap 'zrb_main_handle_signal 130' INT
+    trap 'zrb_main_handle_signal 143' TERM
 
     zrb_completion_begin "$file_finished" "$file_running" "$file_failed" "$vault" "$email_notify_address"
     zrb_hook_run "$backup_vault_conf/pre-run.sh"

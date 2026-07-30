@@ -28,6 +28,7 @@ CHANGELOG
 - Fixed absolute path handling for configuration directories, exclude files, and local backup sources.
 - Fixed missing SSH source directories being accepted as rsync status 23 by validating the configured remote directory before backup and snapshot creation.
 - Fixed repeated runs failing when the exact target snapshot already exists; existing snapshots are now reported and skipped.
+- Fixed interrupted runs leaving a lock without a failure marker by handling signals explicitly and marking armed cleanups as failed unconditionally.
 - Fixed snapshot retention matching so unrelated and malformed snapshots are ignored.
 - Fixed snapshot creation, listing, destruction, rsync, ZFS discovery, and GNU Parallel failures so they propagate correctly.
 - Fixed tests so failed assertions cannot be hidden by later cleanup commands.

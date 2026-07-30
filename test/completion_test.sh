@@ -26,9 +26,11 @@ test_begin_marks_running() {
     local failed_file
 
     test_dir=$(mktemp -d)
+
     finished_file="$test_dir/FINISHED"
     running_file="$test_dir/RUNNING"
     failed_file="$test_dir/FAILED"
+
     touch "$finished_file"
 
     zrb_completion_begin "$finished_file" "$running_file" "$failed_file" photos root
@@ -46,9 +48,11 @@ test_abandoned_run_becomes_failed() {
     local failed_file
 
     test_dir=$(mktemp -d)
+
     finished_file="$test_dir/FINISHED"
     running_file="$test_dir/RUNNING"
     failed_file="$test_dir/FAILED"
+
     touch "$running_file"
 
     zrb_completion_begin "$finished_file" "$running_file" "$failed_file" photos root
@@ -66,9 +70,11 @@ test_success_clears_running_and_failed() {
     local failed_file
 
     test_dir=$(mktemp -d)
+
     finished_file="$test_dir/FINISHED"
     running_file="$test_dir/RUNNING"
     failed_file="$test_dir/FAILED"
+
     touch "$running_file" "$failed_file"
 
     zrb_completion_mark_success "$finished_file" "$running_file" "$failed_file" 0
@@ -85,9 +91,29 @@ test_controlled_failure_marks_failed() {
     local failed_file
 
     test_dir=$(mktemp -d)
+
     running_file="$test_dir/RUNNING"
     failed_file="$test_dir/FAILED"
+
     touch "$running_file"
+
+    zrb_completion_mark_failed "$running_file" "$failed_file"
+
+    [ ! -e "$running_file" ] && [ -f "$failed_file" ]
+
+    rm -f "$failed_file"
+    rmdir "$test_dir"
+}
+
+test_controlled_failure_marks_failed_without_running_marker() {
+    local test_dir
+    local running_file
+    local failed_file
+
+    test_dir=$(mktemp -d)
+
+    running_file="$test_dir/RUNNING"
+    failed_file="$test_dir/FAILED"
 
     zrb_completion_mark_failed "$running_file" "$failed_file"
 
@@ -104,9 +130,11 @@ test_failed_status_does_not_mark_success() {
     local failed_file
 
     test_dir=$(mktemp -d)
+
     finished_file="$test_dir/FINISHED"
     running_file="$test_dir/RUNNING"
     failed_file="$test_dir/FAILED"
+
     touch "$running_file"
 
     zrb_completion_mark_success "$finished_file" "$running_file" "$failed_file" 1
@@ -124,6 +152,7 @@ for test_name in \
     test_abandoned_run_becomes_failed \
     test_success_clears_running_and_failed \
     test_controlled_failure_marks_failed \
+    test_controlled_failure_marks_failed_without_running_marker \
     test_failed_status_does_not_mark_success
 do
     run_test "$test_name" || failures=$((failures + 1))

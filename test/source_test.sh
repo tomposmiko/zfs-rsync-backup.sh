@@ -18,10 +18,12 @@ test_controlled_cleanup_marks_failed_and_removes_lock() {
     source "$TEST_ROOT/zrb.sh"
 
     test_dir=$(mktemp -d)
+
     ZRB_ACTIVE_LOCK_FILE="$test_dir/lock"
     ZRB_RUNNING_FILE="$test_dir/RUNNING"
     ZRB_FAILED_FILE="$test_dir/FAILED"
     ZRB_CLEANUP_ARMED=1
+
     touch "$ZRB_ACTIVE_LOCK_FILE" "$ZRB_RUNNING_FILE"
 
     zrb_main_cleanup 143
@@ -36,11 +38,39 @@ test_controlled_cleanup_marks_failed_and_removes_lock() {
     rmdir "$test_dir"
 }
 
+test_signal_handler_marks_failed_and_removes_lock() {
+    local test_dir
+    local signal_status
+
+    source "$TEST_ROOT/zrb.sh"
+
+    test_dir=$(mktemp -d)
+
+    ZRB_ACTIVE_LOCK_FILE="$test_dir/lock"
+    ZRB_RUNNING_FILE="$test_dir/RUNNING"
+    ZRB_FAILED_FILE="$test_dir/FAILED"
+    ZRB_CLEANUP_ARMED=1
+
+    touch "$ZRB_ACTIVE_LOCK_FILE"
+
+    ( zrb_main_handle_signal 130 )
+    signal_status=$?
+
+    assert_equal "130" "$signal_status" "signal status" &&
+        [ ! -e "$ZRB_ACTIVE_LOCK_FILE" ] &&
+        [ ! -e "$ZRB_RUNNING_FILE" ] &&
+        [ -f "$ZRB_FAILED_FILE" ]
+
+    rm -f "$ZRB_FAILED_FILE"
+    rmdir "$test_dir"
+}
+
 failures=0
 
 for test_name in \
     test_sourcing_entrypoint_has_no_side_effects \
-    test_controlled_cleanup_marks_failed_and_removes_lock
+    test_controlled_cleanup_marks_failed_and_removes_lock \
+    test_signal_handler_marks_failed_and_removes_lock
 do
     run_test "$test_name" || failures=$((failures + 1))
 done

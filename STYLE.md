@@ -50,6 +50,18 @@ for snapshot in $snapshots; do
 done
 ```
 
+Keep resource creation, derived assignments, and filesystem setup in separate blocks:
+
+```bash
+test_dir=$(mktemp -d)
+
+lock_file="$test_dir/lock"
+running_file="$test_dir/RUNNING"
+failed_file="$test_dir/FAILED"
+
+touch "$lock_file" "$running_file"
+```
+
 Add a blank line before a terminal `exit` when output or notification precedes it:
 
 ```bash

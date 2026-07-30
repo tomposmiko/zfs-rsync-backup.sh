@@ -25,6 +25,7 @@ test_create_new_lock() {
     local lock_file
 
     test_dir=$(mktemp -d)
+
     lock_file="$test_dir/lock"
 
     zrb_lock_create "$lock_file" lock_test.sh photos root
@@ -39,7 +40,9 @@ test_replace_stale_lock() {
     local lock_file
 
     test_dir=$(mktemp -d)
+
     lock_file="$test_dir/lock"
+
     echo 99999999 > "$lock_file"
 
     zrb_lock_create "$lock_file" zrb.sh photos root
@@ -55,6 +58,7 @@ test_reject_active_lock() {
     local active_pid
 
     test_dir=$(mktemp -d)
+
     lock_file="$test_dir/lock"
 
     bash -c 'while :; do sleep 1; done' zrb.sh photos &

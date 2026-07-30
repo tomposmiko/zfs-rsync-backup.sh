@@ -74,7 +74,9 @@ test_replace_stale_parallel_lock() {
     local lock_file
 
     test_dir=$(mktemp -d)
+
     lock_file="$test_dir/lock"
+
     echo 99999999 > "$lock_file"
 
     zrb_parallel_lock_create "$lock_file" parallel-zrb.sh
@@ -89,9 +91,11 @@ test_parallel_command() {
     local vaults_file
 
     test_dir=$(mktemp -d)
+
     vaults_file="$test_dir/vaults"
     PARALLEL_ARGS_FILE="$test_dir/args"
     PARALLEL_TEST_STATUS=0
+
     echo photos > "$vaults_file"
 
     zrb_parallel_run_jobs "$vaults_file" 6 daily,weekly
@@ -108,9 +112,11 @@ test_parallel_failure_is_returned() {
     local status
 
     test_dir=$(mktemp -d)
+
     vaults_file="$test_dir/vaults"
     PARALLEL_ARGS_FILE="$test_dir/args"
     PARALLEL_TEST_STATUS=9
+
     echo photos > "$vaults_file"
 
     zrb_parallel_run_jobs "$vaults_file" 4 daily
