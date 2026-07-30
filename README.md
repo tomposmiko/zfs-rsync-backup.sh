@@ -15,6 +15,10 @@ Features:
 USAGE
 =====
 
+Display the installed version:
+
+$ zrb.sh --version
+
 #### dictionary
 VAULT: backup directory where backed up data and config files kept.
 Each VAULT has 3 directories:

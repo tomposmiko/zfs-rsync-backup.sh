@@ -13,6 +13,9 @@ done
 
 ZRB_ROOT=$(cd -P "$(dirname "$ZRB_SCRIPT_PATH")" && pwd)
 
+# shellcheck source=lib/zrb/version.sh
+source "$ZRB_ROOT/lib/zrb/version.sh"
+
 # shellcheck source=lib/zrb/client.sh
 source "$ZRB_ROOT/lib/zrb/client.sh"
 

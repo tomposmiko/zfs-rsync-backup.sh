@@ -1,6 +1,6 @@
 CHANGELOG
 ---------
-##### Unreleased
+##### v0.5 - 2026-07-30
 
 ###### Changed
 - Refactored the shell code into focused modules under `lib/zrb` while keeping thin executable entrypoints.
@@ -19,6 +19,7 @@ CHANGELOG
 - Added secure temporary-file handling for parallel vault lists and sudoers generation.
 - Added `--user`, `--public-key-file`, and `--dry-run` options to `zrb-client.sh`.
 - Added `STYLE.md`, `INSTALL.md`, and a `make check` workflow.
+- Added `--version` to all active commands using one shared version value.
 - Added unit and stubbed end-to-end integration coverage for the active project, including nested vault names and aggregated preflight failures.
 
 ###### Fixed

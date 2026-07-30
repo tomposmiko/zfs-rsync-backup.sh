@@ -10,6 +10,7 @@ zrb_parallel_usage() {
     echo "    $0                    run daily backups with four parallel jobs"
     echo "    $0 -f <freq>          hourly,daily,weekly,monthly (comma separated list)"
     echo "    $0 -j <num>           number of parallel jobs"
+    echo "    $0 --version          display version"
     echo
 }
 
@@ -44,6 +45,11 @@ zrb_parallel_parse_args() {
                 ;;
             -h|--help)
                 zrb_parallel_usage
+
+                return 2
+                ;;
+            -V|--version)
+                zrb_version_print parallel-zrb
 
                 return 2
                 ;;

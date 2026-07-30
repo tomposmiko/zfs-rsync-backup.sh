@@ -14,6 +14,7 @@ zrb_client_usage() {
     echo "    --public-key-file <file>    SSH public key to authorize"
     echo "    --user <name>               backup account name [backup-zrb]"
     echo "    --dry-run                   display planned changes without applying them"
+    echo "    -V, --version               display version"
     echo
 }
 
@@ -45,6 +46,11 @@ zrb_client_parse_args() {
             --dry-run)
                 CLIENT_DRY_RUN=1
                 shift
+                ;;
+            -V|--version)
+                zrb_version_print zrb-client
+
+                return 2
                 ;;
             -h|--help)
                 zrb_client_usage

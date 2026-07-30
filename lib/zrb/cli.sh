@@ -32,6 +32,7 @@ zrb_cli_usage() {
     echo "  -l|--list <vault>         display vault"
     echo "  -c|--check                validate configuration without running a backup"
     echo "  -q|--quiet"
+    echo "  -V|--version"
     echo
 }
 
@@ -100,6 +101,11 @@ zrb_cli_parse() {
             -q|--quiet)
                 QUIET_NOTIFICATIONS=1
                 shift
+                ;;
+            -V|--version)
+                zrb_version_print zrb
+
+                return 2
                 ;;
             -h|--help)
                 zrb_cli_usage

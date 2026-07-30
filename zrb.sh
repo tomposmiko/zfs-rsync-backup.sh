@@ -14,6 +14,9 @@ done
 
 ZRB_ROOT=$(cd -P "$(dirname "$ZRB_SCRIPT_PATH")" && pwd)
 
+# shellcheck source=lib/zrb/version.sh
+source "$ZRB_ROOT/lib/zrb/version.sh"
+
 # shellcheck source=lib/zrb/config.sh
 source "$ZRB_ROOT/lib/zrb/config.sh"
 
@@ -77,11 +80,21 @@ zrb_main_handle_signal() {
 
 zrb_main() {
     local config_status
+    local parse_status
 
     zrb_config_defaults
     zrb_output_init
 
-    f_process_args "$@"
+    zrb_cli_parse "$@"
+    parse_status=$?
+
+    if [ "$parse_status" -eq 2 ]; then
+        return 0
+    fi
+
+    if [ "$parse_status" -ne 0 ]; then
+        return "$parse_status"
+    fi
 
     ################# validate global config directory #####################
     zrb_config_set_global_paths
