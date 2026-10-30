@@ -117,9 +117,9 @@ test_run_preserves_failure_status() {
     assert_equal "12" "$status" "rsync failure status"
 }
 
-failures=0
+TEST_FAILURES=0
 
-for test_name in \
+for TEST_NAME in \
     test_build_args \
     test_omit_empty_optional_args \
     test_status_zero_is_accepted \
@@ -132,7 +132,7 @@ for test_name in \
     test_run_rejects_status_23_for_permission_error \
     test_run_preserves_failure_status
 do
-    run_test "$test_name" || failures=$((failures + 1))
+    run_test "$TEST_NAME" || TEST_FAILURES=$((TEST_FAILURES + 1))
 done
 
-exit "$failures"
+exit "$TEST_FAILURES"

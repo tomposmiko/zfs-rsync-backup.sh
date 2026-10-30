@@ -145,9 +145,9 @@ test_failed_status_does_not_mark_success() {
     rmdir "$test_dir"
 }
 
-failures=0
+TEST_FAILURES=0
 
-for test_name in \
+for TEST_NAME in \
     test_begin_marks_running \
     test_abandoned_run_becomes_failed \
     test_success_clears_running_and_failed \
@@ -155,7 +155,7 @@ for test_name in \
     test_controlled_failure_marks_failed_without_running_marker \
     test_failed_status_does_not_mark_success
 do
-    run_test "$test_name" || failures=$((failures + 1))
+    run_test "$TEST_NAME" || TEST_FAILURES=$((TEST_FAILURES + 1))
 done
 
-exit "$failures"
+exit "$TEST_FAILURES"

@@ -29,19 +29,19 @@ test_parse_backup_options() {
     zrb_output_init
     zrb_cli_parse -v photos -p archive -f daily,weekly -e yes -x custom-exclude
 
-    assert_equal "photos" "$vault" "vault" &&
+    assert_equal "photos" "$VAULT" "vault" &&
         assert_equal "archive" "$SNAPSHOT_PREFIX" "snapshot prefix" &&
         assert_equal "daily weekly" "$FREQ_LIST" "frequency list" &&
-        assert_equal "yes" "$expire" "expiration mode" &&
-        assert_equal "custom-exclude" "$backup_exclude_param" "exclude file"
+        assert_equal "yes" "$EXPIRE_MODE" "expiration mode" &&
+        assert_equal "custom-exclude" "$BACKUP_EXCLUDE_PARAM" "exclude file"
 }
 
 test_parse_actions() {
     zrb_config_defaults
     zrb_output_init
     zrb_cli_parse -a host:/srv -v remote
-    assert_equal "host:/srv" "$data_source" "data source" &&
-        assert_equal "remote" "$vault" "vault"
+    assert_equal "host:/srv" "$DATA_SOURCE" "data source" &&
+        assert_equal "remote" "$VAULT" "vault"
 }
 
 test_parse_absolute_paths() {
@@ -50,8 +50,8 @@ test_parse_absolute_paths() {
     zrb_cli_parse -g /tmp/zrb-config -x /tmp/zrb-exclude -a /srv/source -v local
 
     assert_equal "/tmp/zrb-config" "$GLOBAL_CONFIG_DIR" "config directory" &&
-        assert_equal "/tmp/zrb-exclude" "$backup_exclude_param" "exclude path" &&
-        assert_equal "/srv/source" "$data_source" "local source"
+        assert_equal "/tmp/zrb-exclude" "$BACKUP_EXCLUDE_PARAM" "exclude path" &&
+        assert_equal "/srv/source" "$DATA_SOURCE" "local source"
 }
 
 test_parse_check_mode() {
@@ -67,7 +67,7 @@ test_parse_retention_preview_mode() {
     zrb_output_init
     zrb_cli_parse -e preview -v photos
 
-    assert_equal "preview" "$expire" "retention preview mode"
+    assert_equal "preview" "$EXPIRE_MODE" "retention preview mode"
 }
 
 test_parse_retention_dry_run_alias() {
@@ -75,7 +75,7 @@ test_parse_retention_dry_run_alias() {
     zrb_output_init
     zrb_cli_parse -e dry-run -v photos
 
-    assert_equal "preview" "$expire" "retention dry-run alias"
+    assert_equal "preview" "$EXPIRE_MODE" "retention dry-run alias"
 }
 
 test_invalid_expiration_mode_fails() {
@@ -102,9 +102,9 @@ test_global_paths() {
     GLOBAL_CONFIG_DIR=/srv/zrb
     zrb_config_set_global_paths
 
-    assert_equal "/srv/zrb/exclude" "$global_exclude" "global exclude path" &&
-        assert_equal "/srv/zrb/expire" "$global_expire" "global expiration path" &&
-        assert_equal "/srv/zrb/placeholder" "$global_placeholder" "placeholder path"
+    assert_equal "/srv/zrb/exclude" "$GLOBAL_EXCLUDE" "global exclude path" &&
+        assert_equal "/srv/zrb/expire" "$GLOBAL_EXPIRE" "global expiration path" &&
+        assert_equal "/srv/zrb/placeholder" "$GLOBAL_PLACEHOLDER" "placeholder path"
 }
 
 test_relative_global_path_fails() {
@@ -118,9 +118,9 @@ test_vault_paths() {
     BACKUP_DATASET=pool/backups
     zrb_config_set_vault_paths photos
 
-    assert_equal "/pool/backups/photos/data" "$backup_vault_dest" "vault data path" &&
-        assert_equal "/pool/backups/photos/config" "$backup_vault_conf" "vault config path" &&
-        assert_equal "/pool/backups/photos/log" "$backup_vault_log" "vault log path"
+    assert_equal "/pool/backups/photos/data" "$BACKUP_VAULT_DEST" "vault data path" &&
+        assert_equal "/pool/backups/photos/config" "$BACKUP_VAULT_CONF" "vault config path" &&
+        assert_equal "/pool/backups/photos/log" "$BACKUP_VAULT_LOG" "vault log path"
 }
 
 test_load_notify_address() {
@@ -181,8 +181,8 @@ test_load_legacy_backup_dataset() {
     rmdir "$test_dir"
 }
 
-failures=0
-for test_name in \
+TEST_FAILURES=0
+for TEST_NAME in \
     test_defaults \
     test_parse_backup_options \
     test_parse_actions \
@@ -201,7 +201,7 @@ for test_name in \
     test_load_lowercase_backup_dataset \
     test_load_legacy_backup_dataset
 do
-    run_test "$test_name" || failures=$((failures + 1))
+    run_test "$TEST_NAME" || TEST_FAILURES=$((TEST_FAILURES + 1))
 done
 
-exit "$failures"
+exit "$TEST_FAILURES"

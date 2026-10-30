@@ -49,14 +49,14 @@ test_hook_failure_is_returned() {
     rmdir "$test_dir"
 }
 
-failures=0
+TEST_FAILURES=0
 
-for test_name in \
+for TEST_NAME in \
     test_missing_hook_succeeds \
     test_hook_executes \
     test_hook_failure_is_returned
 do
-    run_test "$test_name" || failures=$((failures + 1))
+    run_test "$TEST_NAME" || TEST_FAILURES=$((TEST_FAILURES + 1))
 done
 
-exit "$failures"
+exit "$TEST_FAILURES"

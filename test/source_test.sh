@@ -102,15 +102,15 @@ test_repeated_signal_does_not_interrupt_cleanup() {
     rmdir "$test_dir"
 }
 
-failures=0
+TEST_FAILURES=0
 
-for test_name in \
+for TEST_NAME in \
     test_sourcing_entrypoint_has_no_side_effects \
     test_controlled_cleanup_marks_failed_and_removes_lock \
     test_signal_handler_marks_failed_and_removes_lock \
     test_repeated_signal_does_not_interrupt_cleanup
 do
-    run_test "$test_name" || failures=$((failures + 1))
+    run_test "$TEST_NAME" || TEST_FAILURES=$((TEST_FAILURES + 1))
 done
 
-exit "$failures"
+exit "$TEST_FAILURES"

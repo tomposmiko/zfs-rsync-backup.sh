@@ -266,9 +266,9 @@ test_unknown_config_key_is_rejected() {
     rmdir "$test_dir"
 }
 
-failures=0
+TEST_FAILURES=0
 
-for test_name in \
+for TEST_NAME in \
     test_expiration_modes \
     test_expire_old_snapshots_above_minimum \
     test_keep_minimum_count \
@@ -282,7 +282,7 @@ for test_name in \
     test_shell_code_in_config_is_rejected \
     test_unknown_config_key_is_rejected
 do
-    run_test "$test_name" || failures=$((failures + 1))
+    run_test "$TEST_NAME" || TEST_FAILURES=$((TEST_FAILURES + 1))
 done
 
-exit "$failures"
+exit "$TEST_FAILURES"

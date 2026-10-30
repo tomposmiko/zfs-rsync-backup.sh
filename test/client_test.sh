@@ -139,9 +139,9 @@ test_invalid_sudoers_is_not_installed() {
     rmdir "$test_dir"
 }
 
-failures=0
+TEST_FAILURES=0
 
-for test_name in \
+for TEST_NAME in \
     test_parse_options \
     test_public_key_is_required \
     test_invalid_user_is_rejected \
@@ -150,7 +150,7 @@ for test_name in \
     test_apply_is_idempotent \
     test_invalid_sudoers_is_not_installed
 do
-    run_test "$test_name" || failures=$((failures + 1))
+    run_test "$TEST_NAME" || TEST_FAILURES=$((TEST_FAILURES + 1))
 done
 
-exit "$failures"
+exit "$TEST_FAILURES"

@@ -70,7 +70,7 @@ zrb_cli_parse() {
             -v|--vault)
                 parameter=${2:-}
                 zrb_cli_require_value "$parameter" || return
-                vault=$parameter
+                VAULT=$parameter
                 shift 2
                 ;;
             -e|--expire)
@@ -79,9 +79,9 @@ zrb_cli_parse() {
                 zrb_cli_expiration_mode_is_valid "$parameter" || return
 
                 if [ "$parameter" == "dry-run" ]; then
-                    expire="preview"
+                    EXPIRE_MODE="preview"
                 else
-                    expire=$parameter
+                    EXPIRE_MODE=$parameter
                 fi
 
                 shift 2
@@ -101,19 +101,19 @@ zrb_cli_parse() {
             -x|--exclude-file)
                 parameter=${2:-}
                 zrb_cli_require_nonempty "$parameter" || return
-                backup_exclude_param=$parameter
+                BACKUP_EXCLUDE_PARAM=$parameter
                 shift 2
                 ;;
             -a|--add-vault)
                 parameter=${2:-}
                 zrb_cli_require_nonempty "$parameter" || return
-                data_source=$parameter
+                DATA_SOURCE=$parameter
                 shift 2
                 ;;
             -l|--list)
                 parameter=${2:-}
                 zrb_cli_require_value "$parameter" || return
-                vault_to_list=$parameter
+                VAULT_TO_LIST=$parameter
                 shift 2
                 ;;
             -c|--check)

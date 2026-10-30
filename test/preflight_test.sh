@@ -181,9 +181,9 @@ test_retention_no_mode_needs_no_config() {
     zrb_preflight_retention no daily /does/not/exist /does/not/exist
 }
 
-failures=0
+TEST_FAILURES=0
 
-for test_name in \
+for TEST_NAME in \
     test_pass_is_green \
     test_fail_is_red \
     test_missing_command_reports_failure \
@@ -198,7 +198,7 @@ for test_name in \
     test_missing_required_file_fails \
     test_retention_no_mode_needs_no_config
 do
-    run_test "$test_name" || failures=$((failures + 1))
+    run_test "$TEST_NAME" || TEST_FAILURES=$((TEST_FAILURES + 1))
 done
 
-exit "$failures"
+exit "$TEST_FAILURES"

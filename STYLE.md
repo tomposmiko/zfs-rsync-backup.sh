@@ -2,6 +2,16 @@
 
 Use four spaces for each indentation level.
 
+Use uppercase names for global variables and lowercase names for function-local variables:
+
+```bash
+GLOBAL_CONFIG_DIR="/etc/zrb"
+
+load_config() {
+    local config_file=$1
+}
+```
+
 Do not wrap lines at 80 characters. Keep a logical statement or sentence on one line unless the language syntax or readability of a genuinely structured expression requires multiple lines.
 
 Keep `then` on the same line as `if` or `elif`:

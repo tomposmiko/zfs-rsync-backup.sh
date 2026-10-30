@@ -156,9 +156,9 @@ test_remote_source_skips_placeholder_check() {
     zrb_source_validate_placeholder backup@example.com:/srv /does/not/exist /does/not/exist photos root
 }
 
-failures=0
+TEST_FAILURES=0
 
-for test_name in \
+for TEST_NAME in \
     test_local_source_has_no_remote_host \
     test_remote_source_returns_host \
     test_remote_source_returns_path \
@@ -174,7 +174,7 @@ for test_name in \
     test_missing_placeholder_fails \
     test_remote_source_skips_placeholder_check
 do
-    run_test "$test_name" || failures=$((failures + 1))
+    run_test "$TEST_NAME" || TEST_FAILURES=$((TEST_FAILURES + 1))
 done
 
-exit "$failures"
+exit "$TEST_FAILURES"

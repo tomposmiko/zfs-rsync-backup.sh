@@ -139,9 +139,9 @@ test_reject_invalid_notify_address() {
     rmdir "$test_dir"
 }
 
-failures=0
+TEST_FAILURES=0
 
-for test_name in \
+for TEST_NAME in \
     test_validate_existing_vault \
     test_validate_missing_dataset_fails \
     test_disabled_vault \
@@ -151,7 +151,7 @@ for test_name in \
     test_add_notify_address \
     test_reject_invalid_notify_address
 do
-    run_test "$test_name" || failures=$((failures + 1))
+    run_test "$TEST_NAME" || TEST_FAILURES=$((TEST_FAILURES + 1))
 done
 
-exit "$failures"
+exit "$TEST_FAILURES"

@@ -9,11 +9,11 @@ zrb_config_defaults() {
     GLOBAL_CONFIG_DIR="/etc/zrb"
     SNAPSHOT_PREFIX="zrb"
     FREQ_LIST="daily"
-    expire="no"
+    EXPIRE_MODE="no"
     QUIET_NOTIFICATIONS=1
     INTERACTIVE_SESSION=0
     CHECK_ONLY=0
-    email_notify_address="root"
+    EMAIL_NOTIFY_ADDRESS="root"
 
     export PATH
 }
@@ -21,10 +21,10 @@ zrb_config_defaults() {
 zrb_config_set_global_paths() {
     [[ $GLOBAL_CONFIG_DIR == /* ]] || return 1
 
-    global_exclude="$GLOBAL_CONFIG_DIR/exclude"
-    global_expire="$GLOBAL_CONFIG_DIR/expire"
-    global_placeholder="$GLOBAL_CONFIG_DIR/placeholder"
-    global_notify_address="$GLOBAL_CONFIG_DIR/notify_address"
+    GLOBAL_EXCLUDE="$GLOBAL_CONFIG_DIR/exclude"
+    GLOBAL_EXPIRE="$GLOBAL_CONFIG_DIR/expire"
+    GLOBAL_PLACEHOLDER="$GLOBAL_CONFIG_DIR/placeholder"
+    GLOBAL_NOTIFY_ADDRESS="$GLOBAL_CONFIG_DIR/notify_address"
 }
 
 zrb_config_load_backup_dataset() {
@@ -55,9 +55,9 @@ zrb_config_load_notify_address() {
 zrb_config_set_vault_paths() {
     local vault_name=$1
 
-    backup_vault_dest="/$BACKUP_DATASET/$vault_name/data"
-    backup_vault_conf="/$BACKUP_DATASET/$vault_name/config"
-    backup_vault_log="/$BACKUP_DATASET/$vault_name/log"
+    BACKUP_VAULT_DEST="/$BACKUP_DATASET/$vault_name/data"
+    BACKUP_VAULT_CONF="/$BACKUP_DATASET/$vault_name/config"
+    BACKUP_VAULT_LOG="/$BACKUP_DATASET/$vault_name/log"
 
-    export backup_vault_dest backup_vault_conf backup_vault_log
+    export BACKUP_VAULT_DEST BACKUP_VAULT_CONF BACKUP_VAULT_LOG
 }
