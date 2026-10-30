@@ -107,8 +107,11 @@ zrb_parallel_lock_create() {
     local lock_status
 
     exec {ZRB_PARALLEL_LOCK_FD}<>"$lock_file" || return 1
-    flock -n "$ZRB_PARALLEL_LOCK_FD"
-    lock_status=$?
+    if { flock -n "$ZRB_PARALLEL_LOCK_FD"; }; then
+        lock_status=0
+    else
+        lock_status=$?
+    fi
 
     if [ "$lock_status" -ne 0 ]; then
         exec {ZRB_PARALLEL_LOCK_FD}>&-

@@ -10,6 +10,10 @@ zrb_config_defaults() {
     SNAPSHOT_PREFIX="zrb"
     FREQ_LIST="daily"
     EXPIRE_MODE="no"
+    VAULT=""
+    VAULT_TO_LIST=""
+    DATA_SOURCE=""
+    BACKUP_EXCLUDE_PARAM=""
     QUIET_NOTIFICATIONS=1
     INTERACTIVE_SESSION=0
     CHECK_ONLY=0

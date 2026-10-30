@@ -65,7 +65,7 @@ zrb_source_validate_placeholder() {
     placeholder_path="$source_path/$placeholder"
 
     if [ ! -e "$placeholder_path" ]; then
-        echo "Placeholder file defined but does not exist: $placeholder_path !" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
+        echo "Placeholder file defined but does not exist: $placeholder_path !" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address" || true
         f_say "$C_RED Placeholder file defined but does not exist: $placeholder_path !"
         f_say "$C_RED Filesystem is not mounted?"
 
@@ -153,7 +153,7 @@ zrb_source_check_remote_access() {
     zrb_source_remote_host "$source_path" > /dev/null || return 0
 
     if ! { zrb_source_remote_accessible "$source_path" "$ssh_config"; }; then
-        echo "Remote source is inaccessible: $source_path" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
+        echo "Remote source is inaccessible: $source_path" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address" || true
 
         f_say "$C_RED        ERROR:${C_NOCOLOR:-} Remote source is inaccessible: $source_path"
 

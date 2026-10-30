@@ -24,8 +24,11 @@ zrb_client_main() {
 
     zrb_client_defaults
 
-    zrb_client_parse_args "$@"
-    parse_status=$?
+    if { zrb_client_parse_args "$@"; }; then
+        parse_status=0
+    else
+        parse_status=$?
+    fi
 
     if [ "$parse_status" -eq 2 ]; then
         return 0
@@ -41,5 +44,7 @@ zrb_client_main() {
 }
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+    set -euo pipefail
+
     zrb_client_main "$@"
 fi

@@ -7,7 +7,7 @@ zrb_vault_report_error() {
     local notify_address=$3
 
     if [ -n "$notify_address" ]; then
-        echo "$message" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
+        echo "$message" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address" || true
     fi
 
     f_say "$C_RED $message"
@@ -59,6 +59,7 @@ zrb_vault_list() {
     local backup_dataset=$1
     local vault_query=$2
     local notify_address=$3
+    local dataset_output
     local filesystems
 
     if [[ $vault_query == "$backup_dataset"* ]]; then
@@ -67,10 +68,11 @@ zrb_vault_list() {
         return
     fi
 
-    filesystems=$(zfs list -o name -s name | grep "^$backup_dataset/.*$vault_query")
+    dataset_output=$(zfs list -o name -s name) || return 1
+    filesystems=$(grep "^$backup_dataset/.*$vault_query" <<< "$dataset_output") || true
 
     if [ -z "$filesystems" ]; then
-        echo "No matching filesystem!" | mail -s "zrb.sh ERROR: $vault_query" "$notify_address"
+        echo "No matching filesystem!" | mail -s "zrb.sh ERROR: $vault_query" "$notify_address" || true
         f_say "$C_RED No matching filesystem!"
 
         return 1

@@ -197,11 +197,14 @@ zrb_retention_run() {
     local minimum_count=""
     local config_status
 
-    zrb_retention_load_config retention_period minimum_count "$frequency" "$global_config" "$vault_config"
-    config_status=$?
+    if { zrb_retention_load_config retention_period minimum_count "$frequency" "$global_config" "$vault_config"; }; then
+        config_status=0
+    else
+        config_status=$?
+    fi
 
     if [ "$config_status" -ne 0 ]; then
-        echo "Invalid retention configuration for frequency '$frequency'." | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
+        echo "Invalid retention configuration for frequency '$frequency'." | mail -s "zrb.sh ERROR: $vault_name" "$notify_address" || true
         f_say "$C_RED Invalid retention configuration for frequency '$frequency'."
 
         return 1

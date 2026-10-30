@@ -21,15 +21,18 @@ zrb_lock_create() {
     local lock_status
 
     exec {ZRB_LOCK_FD}<>"$lock_file" || return 1
-    flock -n "$ZRB_LOCK_FD"
-    lock_status=$?
+    if { flock -n "$ZRB_LOCK_FD"; }; then
+        lock_status=0
+    else
+        lock_status=$?
+    fi
 
     if [ "$lock_status" -ne 0 ]; then
         exec {ZRB_LOCK_FD}>&-
 
         unset ZRB_LOCK_FD
 
-        echo "Backup job is already running!" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address"
+        echo "Backup job is already running!" | mail -s "zrb.sh ERROR: $vault_name" "$notify_address" || true
         f_say "$C_RED Backup job is already running!"
 
         return 1

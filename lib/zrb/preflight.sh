@@ -214,8 +214,11 @@ zrb_preflight_retention() {
         retention_period=""
         minimum_count=""
 
-        zrb_retention_load_config retention_period minimum_count "$frequency" "$global_config" "$vault_config"
-        retention_status=$?
+        if { zrb_retention_load_config retention_period minimum_count "$frequency" "$global_config" "$vault_config"; }; then
+            retention_status=0
+        else
+            retention_status=$?
+        fi
 
         if [ "$retention_status" -ne 0 ]; then
             zrb_preflight_fail "Invalid retention configuration for frequency '$frequency'."

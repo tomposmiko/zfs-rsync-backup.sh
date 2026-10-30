@@ -12,6 +12,8 @@ load_config() {
 }
 ```
 
+Active entrypoints enable `set -euo pipefail` only when executed. Libraries and entrypoints must remain safe to source without changing the caller's shell options. Commands with intentionally handled failures must be used in explicit conditions so their status can be captured reliably.
+
 Do not wrap lines at 80 characters. Keep a logical statement or sentence on one line unless the language syntax or readability of a genuinely structured expression requires multiple lines.
 
 Keep `then` on the same line as `if` or `elif`:

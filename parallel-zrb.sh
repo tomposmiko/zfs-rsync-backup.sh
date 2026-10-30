@@ -39,8 +39,11 @@ zrb_parallel_main() {
     zrb_parallel_defaults
     zrb_output_init
 
-    zrb_parallel_parse_args "$@"
-    parse_status=$?
+    if { zrb_parallel_parse_args "$@"; }; then
+        parse_status=0
+    else
+        parse_status=$?
+    fi
 
     if [ "$parse_status" -eq 2 ]; then
         return 0
@@ -70,8 +73,11 @@ zrb_parallel_main() {
     zrb_parallel_print_timestamp "BEGIN: "
     echo
 
-    zrb_parallel_run_jobs "$vaults_file" "$PARALLEL_JOBS" "$FREQ_LIST"
-    run_status=$?
+    if { zrb_parallel_run_jobs "$vaults_file" "$PARALLEL_JOBS" "$FREQ_LIST"; }; then
+        run_status=0
+    else
+        run_status=$?
+    fi
 
     echo
     zrb_parallel_print_timestamp "FINISH: "
@@ -82,5 +88,7 @@ zrb_parallel_main() {
 }
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+    set -euo pipefail
+
     zrb_parallel_main "$@"
 fi

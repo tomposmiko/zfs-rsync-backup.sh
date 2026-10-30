@@ -121,8 +121,11 @@ zrb_rsync_run() {
 
     diagnostics_file=$(mktemp) || return 1
 
-    LC_ALL=C "${command[@]}" 2> "$diagnostics_file"
-    status=$?
+    if { LC_ALL=C "${command[@]}" 2> "$diagnostics_file"; }; then
+        status=0
+    else
+        status=$?
+    fi
 
     cat "$diagnostics_file" >&2
 

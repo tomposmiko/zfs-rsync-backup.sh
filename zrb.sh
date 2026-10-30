@@ -73,7 +73,7 @@ zrb_main_handle_signal() {
     trap - EXIT
     trap '' INT TERM
 
-    zrb_main_cleanup "$status"
+    zrb_main_cleanup "$status" || true
 
     exit "$status"
 }
@@ -104,8 +104,11 @@ zrb_main() {
     zrb_config_defaults
     zrb_output_init
 
-    zrb_cli_parse "$@"
-    parse_status=$?
+    if { zrb_cli_parse "$@"; }; then
+        parse_status=0
+    else
+        parse_status=$?
+    fi
 
     if [ "$parse_status" -eq 2 ]; then
         return 0
@@ -116,12 +119,15 @@ zrb_main() {
     fi
 
     ################# validate global config directory #####################
-    zrb_config_set_global_paths
-    config_status=$?
+    if { zrb_config_set_global_paths; }; then
+        config_status=0
+    else
+        config_status=$?
+    fi
 
     if [ "$config_status" -ne 0 ]; then
         if [ "$CHECK_ONLY" -eq 0 ]; then
-            echo "configdir does not start with /" | mail -s "zrb.sh ERROR: $VAULT" "$EMAIL_NOTIFY_ADDRESS"
+            echo "configdir does not start with /" | mail -s "zrb.sh ERROR: $VAULT" "$EMAIL_NOTIFY_ADDRESS" || true
         fi
 
         f_say "$C_RED configdir does not start with /"
@@ -222,8 +228,11 @@ zrb_main() {
     trap 'zrb_main_handle_signal 143' TERM
 
     zrb_completion_begin "$file_finished" "$file_running" "$file_failed" "$VAULT" "$EMAIL_NOTIFY_ADDRESS"
-    zrb_hook_run "$BACKUP_VAULT_CONF/pre-run.sh"
-    hook_status=$?
+    if { zrb_hook_run "$BACKUP_VAULT_CONF/pre-run.sh"; }; then
+        hook_status=0
+    else
+        hook_status=$?
+    fi
 
     if [ "$hook_status" -ne 0 ]; then
         f_say "${C_RED:-}        ERROR:${C_NOCOLOR:-} Pre-run hook failed with status $hook_status."
@@ -236,21 +245,30 @@ zrb_main() {
     zrb_report_begin date_start_epoch "$report_file" "$QUIET_NOTIFICATIONS"
 
     if [ "$QUIET_NOTIFICATIONS" -eq 1 ]; then
-        zrb_rsync_run "$backup_source" "$BACKUP_VAULT_DEST" "$ssh_config" rsync_args > /dev/null
+        if { zrb_rsync_run "$backup_source" "$BACKUP_VAULT_DEST" "$ssh_config" rsync_args > /dev/null; }; then
+            rsync_ret=0
+        else
+            rsync_ret=$?
+        fi
     else
-        zrb_rsync_run "$backup_source" "$BACKUP_VAULT_DEST" "$ssh_config" rsync_args
+        if { zrb_rsync_run "$backup_source" "$BACKUP_VAULT_DEST" "$ssh_config" rsync_args; }; then
+            rsync_ret=0
+        else
+            rsync_ret=$?
+        fi
     fi
-
-    rsync_ret=$?
     ############################### rsync ################################
 
-    zrb_hook_run "$BACKUP_VAULT_CONF/post-run.sh"
-    hook_status=$?
+    if { zrb_hook_run "$BACKUP_VAULT_CONF/post-run.sh"; }; then
+        hook_status=0
+    else
+        hook_status=$?
+    fi
 
     zrb_report_finish "$report_file" "$date_start_epoch" "$QUIET_NOTIFICATIONS"
 
     if [ "$rsync_ret" -ne 0 ]; then
-        echo "rsync exited with non-zero status code: $rsync_ret !" | mail -s "$HOSTNAME zrb.sh ERROR: $VAULT" "$EMAIL_NOTIFY_ADDRESS"
+        echo "rsync exited with non-zero status code: $rsync_ret !" | mail -s "$HOSTNAME zrb.sh ERROR: $VAULT" "$EMAIL_NOTIFY_ADDRESS" || true
         f_say "$C_RED rsync exited with non-zero status code!"
 
         exit 1
@@ -280,5 +298,7 @@ zrb_main() {
 }
 
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+    set -euo pipefail
+
     zrb_main "$@"
 fi
