@@ -105,6 +105,8 @@ zrb_source_remote_accessible() {
     local remote_path
     local quoted_remote_path
     local remote_command="echo -n"
+    local attempt
+    local retry_delay=${ZRB_SOURCE_RETRY_DELAY:-1}
     local -a ssh_args=()
 
     backup_host=$(zrb_source_remote_host "$source_path") || return 0
@@ -114,6 +116,13 @@ zrb_source_remote_accessible() {
         remote_command="test -d $quoted_remote_path"
     fi
 
+    ssh_args+=(
+        -o
+        BatchMode=yes
+        -o
+        ConnectTimeout=10
+    )
+
     if [ -n "$ssh_config" ]; then
         ssh_args+=(
             -F
@@ -121,8 +130,18 @@ zrb_source_remote_accessible() {
         )
     fi
 
-    # shellcheck disable=SC2029 # The configured remote path is shell-escaped with printf %q.
-    ssh "${ssh_args[@]}" "$backup_host" "$remote_command" 2>/dev/null
+    for attempt in 1 2 3; do
+        # shellcheck disable=SC2029 # The configured remote path is shell-escaped with printf %q.
+        if { ssh "${ssh_args[@]}" "$backup_host" "$remote_command" 2>/dev/null; }; then
+            return 0
+        fi
+
+        if [ "$attempt" -lt 3 ]; then
+            sleep "$retry_delay"
+        fi
+    done
+
+    return 1
 }
 
 zrb_source_check_remote_access() {

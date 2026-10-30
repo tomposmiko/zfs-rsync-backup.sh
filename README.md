@@ -81,6 +81,8 @@ FAIL: Preflight check failed: 22 checks passed, 3 checks failed.
 
 $ zrb.sh -e preview -v VAULT
 
+$ zrb.sh -e dry-run -v VAULT
+
 - expire only:
 
 $ zrb.sh -e only -v VAULT

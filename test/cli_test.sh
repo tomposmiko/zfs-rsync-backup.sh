@@ -70,6 +70,14 @@ test_parse_retention_preview_mode() {
     assert_equal "preview" "$expire" "retention preview mode"
 }
 
+test_parse_retention_dry_run_alias() {
+    zrb_config_defaults
+    zrb_output_init
+    zrb_cli_parse -e dry-run -v photos
+
+    assert_equal "preview" "$expire" "retention dry-run alias"
+}
+
 test_invalid_expiration_mode_fails() {
     zrb_config_defaults
     zrb_output_init
@@ -181,6 +189,7 @@ for test_name in \
     test_parse_absolute_paths \
     test_parse_check_mode \
     test_parse_retention_preview_mode \
+    test_parse_retention_dry_run_alias \
     test_invalid_expiration_mode_fails \
     test_missing_option_value_fails \
     test_unknown_option_fails \

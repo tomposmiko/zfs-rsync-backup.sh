@@ -7,7 +7,7 @@ CHANGELOG
 - Added `flock` to preflight validation and installation requirements.
 
 ###### Added
-- Added retention preview mode with `zrb.sh -e preview -v VAULT`; it lists snapshots that would expire without running a backup or deleting snapshots.
+- Added retention preview mode with `zrb.sh -e preview -v VAULT` or `zrb.sh -e dry-run -v VAULT`; it lists snapshots that would expire without running a backup or deleting snapshots.
 
 ###### Fixed
 - Fixed successful completion being recorded before hooks, snapshots, and retention finished.
@@ -15,6 +15,7 @@ CHANGELOG
 - Fixed exact snapshot-name collisions being silently accepted; an existing target snapshot now fails the run.
 - Fixed all rsync status 23 failures being accepted; only diagnostics limited to vanished or changed source files are now tolerated.
 - Fixed locale-dependent rsync status 23 classification by using the C locale locally and remotely.
+- Added bounded retries to the remote source accessibility check to tolerate brief SSH connection failures.
 
 ###### Security
 - Replaced executable retention configuration loading with strict parsing of documented keys and values.
