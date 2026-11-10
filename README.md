@@ -96,7 +96,7 @@ samba17/HAL: missing vault
 - vault dataset: tank/zrb/Projects/HAL
 ```
 
-Configure email in `etc/cron.d/zrb-coverage` (`MAILTO=root` by default). The audit example runs hourly. The companion Puppet repository installs the checker and cron on backup servers and improves Samba inventory generation using parsed `testparm -s` output, source timestamps, row counts and independent expected-host markers. The new generator keeps the previous inventory if parsing fails.
+Configure email in `etc/cron.d/zrb-coverage` (`MAILTO=root` by default). The audit example runs daily at 06:17 (server local time). The companion Puppet repository installs the checker and cron on backup servers and improves Samba inventory generation using parsed `testparm -s` output, source timestamps, row counts and independent expected-host markers. The new generator keeps the previous inventory if parsing fails.
 
 ```bash
 zrb-coverage.sh --max-inventory-age 36h --hosts-file /tank/zrb/samba_servers.txt \
