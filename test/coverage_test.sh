@@ -46,14 +46,17 @@ healthy() {
 missing_vault() {
     printf '%s\n' 'samba12:EFGH:/tank/Projects/EFGH' >> "$CASE_DIR/inventory"
     check_result 1 'MISSING_VAULT: samba12/EFGH'
-    [[ $OUTPUT == *tank/zrb/Projects/EFGH* && $OUTPUT != */config/source* ]]
+    [[ $OUTPUT == $'ZRB COVERAGE FAILED: 1 problem(s), 2 expected vault(s) checked\n\nMISSING_VAULT: samba12/EFGH\n- server path: samba12:/tank/Projects/EFGH\n- vault dataset: tank/zrb/Projects/EFGH' ]]
+    [[ $OUTPUT != */config/source* ]]
 }
 multiple_findings() {
     rm -- "$VAULT/config/source"
     touch "$VAULT/config/DISABLE"
     printf 'tank/zrb/Projects/ABCD/volume\t-\t-\n' >> "$CASE_DIR/listing"
     check_result 1 SOURCE_CONFIG_ERROR
-    [[ $OUTPUT == *DISABLED_VAULT* && $OUTPUT == *UNSCHEDULED_VAULT* ]]
+    [[ $OUTPUT == 'ZRB COVERAGE FAILED: 3 problem(s), 1 expected vault(s) checked'* ]]
+    [[ $OUTPUT == *$'\n\nDISABLED_VAULT: samba11/ABCD\n- server path: samba11:/data/Projects/ABCD\n- vault dataset: tank/zrb/Projects/ABCD\n- disable marker: '* ]]
+    [[ $OUTPUT == *$'\n\nSOURCE_CONFIG_ERROR: samba11/ABCD\n'* && $OUTPUT == *$'\n\nUNSCHEDULED_VAULT: samba11/ABCD\n'* ]]
 }
 wrong_sources() {
     local source
@@ -71,6 +74,7 @@ wrong_sources() {
 aliases() {
     printf '%s\n' 'backup@samba11.example:/tank/Projects/ABCD' > "$VAULT/config/source"
     check_result 1 WRONG_SOURCE
+    [[ $OUTPUT == *$'\n- configured source: samba11.example:/tank/Projects/ABCD\n- expected source: samba11:/data/Projects/ABCD' ]]
     check_result 0 '' --host-alias samba11.example=samba11 --path-alias /data=/tank
     check_result 2 chained --host-alias a=b --host-alias b=c
     check_result 2 chained --path-alias /a=/b --path-alias /b=/c
@@ -83,6 +87,7 @@ duplicate_share() {
 collision() {
     printf '%s\n' 'samba12:ABCD:/data/Projects/ABCD' >> "$CASE_DIR/inventory"
     check_result 1 DESTINATION_COLLISION
+    [[ $OUTPUT == *$'DESTINATION_COLLISION: samba12/ABCD\n- server path: samba12:/data/Projects/ABCD\n- vault dataset: tank/zrb/Projects/ABCD\n- conflicting source: samba11:/data/Projects/ABCD' ]]
 }
 exclusions() {
     printf '%s\n' 'samba-dfs:Projects:/data/dfs/Projects' 'samba11:R2D2:/data/R2D2' >> "$CASE_DIR/inventory"

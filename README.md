@@ -88,6 +88,14 @@ For `samba11:ABCD:/tank/Projects/ABCD` (or `/data/Projects/ABCD`), the expected 
 
 The audit flags missing datasets/configuration/directories, incorrect sources, disabled vaults, destination collisions, wrong/unmounted mountpoints, and non-leaf vaults skipped by `parallel-zrb.sh`. It makes one read-only ZFS dataset listing (including volumes when checking leaf selection), reads configuration and never contacts sources, starts backups, runs hooks, snapshots, retention, mail commands or modifies state markers. It does not modify files at all. Only findings/errors produce output by default, so cron can email them. Exit 0 means configured and eligible for the normal parallel runner; exit 1 means coverage problems; exit 2 means the audit could not run. Use `--verbose` for a success summary.
 
+Findings are separated by blank lines, with a short heading and labeled details:
+
+```text
+MISSING_VAULT: samba17/HAL
+- server path: samba17:/data/Projects/HAL
+- vault dataset: tank/zrb/Projects/HAL
+```
+
 Configure email in `etc/cron.d/zrb-coverage` (`MAILTO=root` by default). The audit example runs hourly. The companion Puppet repository installs the checker and cron on backup servers and improves Samba inventory generation using parsed `testparm -s` output, source timestamps, row counts and independent expected-host markers. The new generator keeps the previous inventory if parsing fails.
 
 ```bash
