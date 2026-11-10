@@ -143,6 +143,40 @@ heartbeats() {
     printf '# zrb-inventory-v1:samba11:%s:1\n' "$((now + 1000))" >> "$CASE_DIR/inventory"
     check_result 1 invalid/future
 }
+fresh_zero_share_inventory() {
+    local now
+    now=$(date +%s)
+    printf '%s\n' samba10 samba11 > "$CASE_DIR/hosts"
+    printf '# zrb-inventory-v1:samba10:%s:0\n# zrb-inventory-v1:samba11:%s:1\nsamba11:ABCD:/data/Projects/ABCD\n' "$now" "$now" > "$CASE_DIR/inventory"
+    check_result 0 '' --hosts-file "$CASE_DIR/hosts" --max-inventory-age 36h
+    [[ -z $OUTPUT ]]
+    # No vault is required when every registered server confirms zero shares.
+    printf '# zrb-inventory-v1:samba10:%s:0\n# zrb-inventory-v1:samba11:%s:0\n' "$now" "$now" > "$CASE_DIR/inventory"
+    check_result 0 '0 expected vault(s)' --hosts-file "$CASE_DIR/hosts" --max-inventory-age 36h --verbose
+}
+unverified_zero_share_inventory() {
+    local now
+    now=$(date +%s)
+    printf '# zrb-inventory-v1:samba10:%s:0\n' "$((now - 200000))" > "$CASE_DIR/inventory"
+    check_result 1 'samba10: stale inventory' --max-inventory-age 36h
+    printf '# zrb-inventory-v1:samba10:%s:0\n' "$((now + 1000))" > "$CASE_DIR/inventory"
+    check_result 1 invalid/future --max-inventory-age 36h
+    printf '# zrb-inventory-v1:samba10:%s:0\n' "$now" > "$CASE_DIR/inventory"
+    check_result 1 'samba10: empty share inventory'
+    # A verified empty server must not hide a second server with no export.
+    check_result 1 'samba12: missing inventory' --expected-host samba12 --max-inventory-age 36h
+    printf '%s\n' '# zrb-expected-host:samba10' > "$CASE_DIR/inventory"
+    check_result 1 'samba10: missing inventory' --max-inventory-age 36h
+}
+inconsistent_zero_share_inventory() {
+    local now
+    now=$(date +%s)
+    printf '# zrb-inventory-v1:samba11:%s:0\nsamba11:ABCD:/data/Projects/ABCD\n' "$now" > "$CASE_DIR/inventory"
+    check_result 1 'samba11: incomplete inventory' --max-inventory-age 36h
+    [[ $OUTPUT == *$'- declared shares: 0\n- received shares: 1'* ]]
+    printf '# zrb-inventory-v1:samba11:%s:1\n' "$now" > "$CASE_DIR/inventory"
+    check_result 1 'samba11: incomplete inventory' --max-inventory-age 36h
+}
 mounts() {
     printf 'tank/zrb\t%s\tyes\ntank/zrb/Projects/ABCD\t%s\tno\n' "$CASE_DIR/backup" "$VAULT" > "$CASE_DIR/listing"
     check_result 1 'unavailable vault'
@@ -197,7 +231,7 @@ help_and_source_safety() {
 }
 
 FAILED=0
-for TEST in healthy missing_vault multiple_findings wrong_sources aliases duplicate_share collision exclusions fully_excluded invalid_inventory automatic_servers invalid_server_list heartbeats mounts directories dataset_config zfs_failure malformed_zfs share_names_with_spaces nul_source help_and_source_safety; do
+for TEST in healthy missing_vault multiple_findings wrong_sources aliases duplicate_share collision exclusions fully_excluded invalid_inventory automatic_servers invalid_server_list heartbeats fresh_zero_share_inventory unverified_zero_share_inventory inconsistent_zero_share_inventory mounts directories dataset_config zfs_failure malformed_zfs share_names_with_spaces nul_source help_and_source_safety; do
     setup_fixture "$TEST"
     export COVERAGE_SCRIPT CASE_DIR VAULT
     # Explicit subprocess preserves errexit inside each test and every assertion.

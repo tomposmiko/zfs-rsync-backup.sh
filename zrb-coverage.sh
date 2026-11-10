@@ -80,6 +80,7 @@ coverage_canonical_path() {
 coverage_main() {
     local inventory=/tank/zrb/samba_shares.txt hosts_file='' config_dir=/etc/zrb dataset='' root='' zfs=/usr/sbin/zfs max_age='' verbose=false
     local option value old new key line host share path epoch count number=0 now multiplier prefix relative vault label expected_host expected_path actual_host actual_path source_file listing mountpoint mounted extra parent best checked=0
+    local expected_count=0 confirmed_empty=0
     local -a prefixes=() errors=() entry_hosts=() entry_shares=() entry_paths=()
     local -A ignored_hosts=() ignored_shares=() expected=() epochs=() declared=() counts=() host_aliases=() path_aliases=() present=() mounts=() parents=() destinations=()
     # Dynamic scope keeps all audit state local and makes sourcing this file harmless.
@@ -191,15 +192,24 @@ coverage_main() {
     done < "$inventory"
     for host in "${!expected[@]}"; do
         [[ -n ${ignored_hosts[$host]+x} ]] && continue
+        expected_count=$((expected_count + 1))
         if [[ -n ${epochs[$host]+x} ]]; then
             epoch=${epochs[$host]}
             if (( epoch <= 0 || epoch > now + 300 )); then coverage_finding errors "$host: inventory error" "reason: invalid/future generation timestamp" "inventory: $inventory"
             elif [[ -n $max_age ]] && (( now - epoch > max_age )); then coverage_finding errors "$host: stale inventory" "inventory: $inventory" "age: $((now - epoch)) seconds" "maximum age: $max_age seconds"; fi
             if (( declared[$host] != ${counts[$host]:-0} )); then coverage_finding errors "$host: incomplete inventory" "inventory: $inventory" "declared shares: ${declared[$host]}" "received shares: ${counts[$host]:-0}"; fi
         elif [[ -n $max_age ]]; then coverage_finding errors "$host: missing inventory" "inventory: $inventory" "reason: no source generation header"; fi
-        if (( ${counts[$host]:-0} == 0 )); then coverage_finding errors "$host: empty share inventory" "inventory: $inventory" "reason: no shares received"; fi
+        if (( ${counts[$host]:-0} == 0 )); then
+            # An empty server is healthy only when a fresh successful scan
+            # explicitly declares zero shares. Missing data is not evidence.
+            if [[ -n $max_age && -n ${epochs[$host]+x} ]] && (( declared[$host] == 0 && epochs[$host] > 0 && epochs[$host] <= now + 300 && now - epochs[$host] <= max_age )); then
+                confirmed_empty=$((confirmed_empty + 1))
+            else
+                coverage_finding errors "$host: empty share inventory" "inventory: $inventory" "reason: no shares received and no fresh zero-share declaration"
+            fi
+        fi
     done
-    if (( ${#entry_hosts[@]} == 0 )); then coverage_finding errors "$inventory: empty inventory" "reason: no expected shares remain after exclusions; coverage cannot be established"; fi
+    if (( ${#entry_hosts[@]} == 0 && (expected_count == 0 || confirmed_empty != expected_count) )); then coverage_finding errors "$inventory: empty inventory" "reason: no expected shares remain after exclusions; coverage cannot be established"; fi
     if ! { listing=$(timeout 60 "$zfs" list -H -r -t filesystem,volume -o name,mountpoint,mounted "$dataset"); }; then coverage_error 'ZFS inventory command failed'; return 2; fi
     while IFS= read -r line; do
         if [[ $line != *$'\t'*$'\t'* ]]; then coverage_error 'malformed ZFS inventory'; return 2; fi
