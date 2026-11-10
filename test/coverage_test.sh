@@ -46,7 +46,7 @@ healthy() {
 missing_vault() {
     printf '%s\n' 'samba12:EFGH:/tank/Projects/EFGH' >> "$CASE_DIR/inventory"
     check_result 1 'MISSING_VAULT: samba12/EFGH'
-    [[ $OUTPUT == *tank/zrb/Projects/EFGH* && $OUTPUT == */config/source* ]]
+    [[ $OUTPUT == *tank/zrb/Projects/EFGH* && $OUTPUT != */config/source* ]]
 }
 multiple_findings() {
     rm -- "$VAULT/config/source"

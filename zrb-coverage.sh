@@ -215,7 +215,7 @@ coverage_main() {
             continue
         fi
         destinations[$key]=$value; checked=$((checked + 1))
-        if [[ -z ${present[$key]+x} ]]; then errors+=("MISSING_VAULT: $label: expected dataset $key; source config $vault/config/source"); continue; fi
+        if [[ -z ${present[$key]+x} ]]; then errors+=("MISSING_VAULT: $label: expected dataset $key"); continue; fi
         if [[ ${present[$key]} != yes || ${mounts[$key]} != "$vault" ]]; then errors+=("UNAVAILABLE_VAULT: $label: $key mounted=${present[$key]}, mountpoint=${mounts[$key]}, expected $vault"); continue; fi
         if [[ -n ${parents[$key]+x} ]]; then errors+=("UNSCHEDULED_VAULT: $label: $key has child datasets; parallel-zrb.sh selects only leaf vaults"); fi
         extra=''
