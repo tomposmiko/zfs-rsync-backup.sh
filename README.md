@@ -76,6 +76,31 @@ or:
 FAIL: Preflight check failed: 22 checks passed, 3 checks failed.
 ```
 
+#### expected-share backup coverage
+
+The normal parallel runner and freshness monitor discover existing vaults. They cannot detect a project that never had a vault. `zrb-coverage.sh` starts with the expected Samba inventory instead, and reports every missing or inconsistent backup configuration.
+
+```bash
+zrb-coverage.sh --inventory /tank/zrb/samba_shares.txt --ignore-host samba-dfs --ignore-share R2D2
+```
+
+For `samba11:ABCD:/tank/Projects/ABCD` (or `/data/Projects/ABCD`), the expected vault is `tank/zrb/Projects/ABCD` and its source file is `/tank/zrb/Projects/ABCD/config/source`. Both default source prefixes map to the same relative vault name. The source file must refer to the same host and path; a `user@` prefix and trailing slash are accepted, but regex, prefix and substring matching are not used.
+
+The audit flags missing datasets/configuration/directories, incorrect sources, disabled vaults, destination collisions, wrong/unmounted mountpoints, and non-leaf vaults skipped by `parallel-zrb.sh`. It makes one read-only ZFS dataset listing (including volumes when checking leaf selection), reads configuration and never contacts sources, starts backups, runs hooks, snapshots, retention, mail commands or modifies state markers. It does not modify files at all. Only findings/errors produce output by default, so cron can email them. Exit 0 means configured and eligible for the normal parallel runner; exit 1 means coverage problems; exit 2 means the audit could not run. Use `--verbose` for a success summary.
+
+Configure email in `etc/cron.d/zrb-coverage` (`MAILTO=root` by default). The audit example runs hourly. The companion Puppet repository installs the checker and cron on backup servers and improves Samba inventory generation using parsed `testparm -s` output, source timestamps, row counts and independent expected-host markers. The new generator keeps the previous inventory if parsing fails.
+
+```bash
+zrb-coverage.sh --max-inventory-age 36h --hosts-file /tank/zrb/samba_servers.txt \
+  --ignore-host samba-dfs --ignore-share R2D2
+```
+
+Strict inventory-age checking detects stale, missing and incomplete per-host exports. The regenerated aggregate file mtime is deliberately ignored. Puppet automatically registers every server managed by `pts_samba` in `/tank/zrb/samba_servers.txt`, independently of its share inventory. The scheduled audit reads this file with `--hosts-file` and detects missing share exports without a manually maintained server list. An empty or unavailable server list is an audit failure. Legacy three-field inventories remain accepted when no age requirement is passed. An empty/fully excluded inventory always fails rather than claiming complete coverage.
+
+Host and filesystem aliases are never guessed. If verified equivalent, configure them explicitly, for example `--host-alias samba11.prd.svfx=samba11 --path-alias /data=/tank`. Do not add an alias merely to hide a wrong-source report. Other source roots can be configured with repeatable `--source-prefix` arguments, which replace the `/data`, `/tank` defaults. The backup root dataset is read from `/etc/zrb/backup_dataset` (or legacy `BACKUP_DATASET`), with optional CLI overrides; vault mountpoints must match zrb's expected `/<dataset>/<vault>` layout.
+
+This is **configuration coverage**, not proof of a recent successful backup or restore. Keep the existing FINISHED/RUNNING/FAILED freshness monitoring and job-failure emails. It does not evaluate rsync exclude files, hooks, parent-level aggregate backups or custom scheduling. The inventory includes declared Samba shares; unshared project directories require an independent source inventory. Explicit ignore rules are exact matches and should be reviewed as backup-policy exceptions.
+
 #### expiring
 - preview expiration without deleting snapshots:
 

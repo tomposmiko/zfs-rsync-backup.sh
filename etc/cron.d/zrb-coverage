@@ -1,0 +1,4 @@
+# Read-only coverage audit. Cron mails output only when coverage or inventory is broken.
+MAILTO=root
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+17 * * * * root /usr/local/sbin/zrb-coverage.sh --inventory /tank/zrb/samba_shares.txt --hosts-file /tank/zrb/samba_servers.txt --max-inventory-age 36h --ignore-host samba-dfs --ignore-share R2D2

@@ -6,11 +6,12 @@ Install the commands and libraries under one directory so the entrypoints can re
 
 ```bash
 install -d /opt/zrb.sh/lib/zrb /etc/zrb
-install -m 0755 zrb.sh parallel-zrb.sh zrb-client.sh /opt/zrb.sh/
+install -m 0755 zrb.sh parallel-zrb.sh zrb-client.sh zrb-coverage.sh /opt/zrb.sh/
 install -m 0644 lib/zrb/*.sh /opt/zrb.sh/lib/zrb/
 ln -sfn /opt/zrb.sh/zrb.sh /usr/local/sbin/zrb.sh
 ln -sfn /opt/zrb.sh/parallel-zrb.sh /usr/local/sbin/parallel-zrb.sh
 ln -sfn /opt/zrb.sh/zrb-client.sh /usr/local/sbin/zrb-client.sh
+ln -sfn /opt/zrb.sh/zrb-coverage.sh /usr/local/sbin/zrb-coverage.sh
 install -m 0644 etc/zrb/exclude etc/zrb/expire etc/zrb/backup_dataset /etc/zrb/
 install -m 0644 etc/cron.d/zrb-runall /etc/cron.d/zrb-runall
 ```
@@ -24,3 +25,5 @@ make check
 ```
 
 `deprecated/rsync-novanished.sh` is retained only for historical compatibility and is not required by the current entrypoints.
+
+The optional `zrb-coverage.sh` audit is a standalone read-only Bash command. It requires Bash 4.3+ and GNU coreutils (`realpath`, `stat`, `timeout`); its regression tests also use Bash. Before scheduling `etc/cron.d/zrb-coverage`, run the audit manually and configure MAILTO. Install only one coverage cron entry: the companion Puppet `pts_samba::backup_server` class manages its own entry. The supplied strict cron requires fresh source inventory headers from the matching Puppet Samba collector; legacy `host:share:path` inventories work manually without `--max-inventory-age`.
