@@ -172,34 +172,34 @@ coverage_main() {
         line=${line#"${line%%[![:space:]]*}"}; line=${line%"${line##*[![:space:]]}"}
         if [[ $line == '# zrb-expected-host:'* ]]; then
             host=${line#*:}; host=${host,,}
-            if { coverage_host "$host"; }; then expected[$host]=1; else coverage_finding errors "INVENTORY_ERROR: $inventory:$number" "reason: invalid expected host"; fi
+            if { coverage_host "$host"; }; then expected[$host]=1; else coverage_finding errors "$inventory:$number: inventory error" "reason: invalid expected host"; fi
         elif [[ $line == '# zrb-inventory-v1:'* ]]; then
             if [[ $line =~ ^\#\ zrb-inventory-v1:([A-Za-z0-9][A-Za-z0-9_.-]*):([0-9]{1,12}):([0-9]{1,9})$ ]]; then
                 host=${BASH_REMATCH[1],,}; epoch=${BASH_REMATCH[2]}; count=${BASH_REMATCH[3]}
-                if [[ -n ${epochs[$host]+x} ]]; then coverage_finding errors "INVENTORY_ERROR: $inventory:$number" "reason: duplicate header"; continue; fi
+                if [[ -n ${epochs[$host]+x} ]]; then coverage_finding errors "$inventory:$number: inventory error" "reason: duplicate header"; continue; fi
                 epochs[$host]=$((10#$epoch)); declared[$host]=$((10#$count)); expected[$host]=1
-            else coverage_finding errors "INVENTORY_ERROR: $inventory:$number" "reason: invalid header"; fi
+            else coverage_finding errors "$inventory:$number: inventory error" "reason: invalid header"; fi
         elif [[ -z $line || $line == \#* ]]; then continue
         elif [[ $line == *:*:* ]]; then
             host=${line%%:*}; value=${line#*:}; share=${value%%:*}; path=${value#*:}; host=${host,,}
-            if ! { coverage_host "$host"; } || [[ -z $share || $share == *[[:cntrl:]]* ]]; then coverage_finding errors "INVENTORY_ERROR: $inventory:$number" "reason: invalid host/share"; continue; fi
+            if ! { coverage_host "$host"; } || [[ -z $share || $share == *[[:cntrl:]]* ]]; then coverage_finding errors "$inventory:$number: inventory error" "reason: invalid host/share"; continue; fi
             expected[$host]=1; counts[$host]=$((${counts[$host]:-0} + 1))
             if [[ -n ${ignored_hosts[$host]+x} || -n ${ignored_shares[${share,,}]+x} ]]; then continue; fi
-            if ! { coverage_path "$path"; }; then coverage_finding errors "INVENTORY_ERROR: $inventory:$number" "reason: invalid concrete absolute path" "server path: $host:$path"; continue; fi
+            if ! { coverage_path "$path"; }; then coverage_finding errors "$inventory:$number: inventory error" "reason: invalid concrete absolute path" "server path: $host:$path"; continue; fi
             entry_hosts+=("$host"); entry_shares+=("$share"); entry_paths+=("$REPLY")
-        else coverage_finding errors "INVENTORY_ERROR: $inventory:$number" "reason: expected host:share:/absolute/path"; fi
+        else coverage_finding errors "$inventory:$number: inventory error" "reason: expected host:share:/absolute/path"; fi
     done < "$inventory"
     for host in "${!expected[@]}"; do
         [[ -n ${ignored_hosts[$host]+x} ]] && continue
         if [[ -n ${epochs[$host]+x} ]]; then
             epoch=${epochs[$host]}
-            if (( epoch <= 0 || epoch > now + 300 )); then coverage_finding errors "INVENTORY_ERROR: $host" "reason: invalid/future generation timestamp" "inventory: $inventory"
-            elif [[ -n $max_age ]] && (( now - epoch > max_age )); then coverage_finding errors "STALE_INVENTORY: $host" "inventory: $inventory" "age: $((now - epoch)) seconds" "maximum age: $max_age seconds"; fi
-            if (( declared[$host] != ${counts[$host]:-0} )); then coverage_finding errors "INCOMPLETE_INVENTORY: $host" "inventory: $inventory" "declared shares: ${declared[$host]}" "received shares: ${counts[$host]:-0}"; fi
-        elif [[ -n $max_age ]]; then coverage_finding errors "MISSING_INVENTORY: $host" "inventory: $inventory" "reason: no source generation header"; fi
-        if (( ${counts[$host]:-0} == 0 )); then coverage_finding errors "EMPTY_HOST_INVENTORY: $host" "inventory: $inventory" "reason: no shares received"; fi
+            if (( epoch <= 0 || epoch > now + 300 )); then coverage_finding errors "$host: inventory error" "reason: invalid/future generation timestamp" "inventory: $inventory"
+            elif [[ -n $max_age ]] && (( now - epoch > max_age )); then coverage_finding errors "$host: stale inventory" "inventory: $inventory" "age: $((now - epoch)) seconds" "maximum age: $max_age seconds"; fi
+            if (( declared[$host] != ${counts[$host]:-0} )); then coverage_finding errors "$host: incomplete inventory" "inventory: $inventory" "declared shares: ${declared[$host]}" "received shares: ${counts[$host]:-0}"; fi
+        elif [[ -n $max_age ]]; then coverage_finding errors "$host: missing inventory" "inventory: $inventory" "reason: no source generation header"; fi
+        if (( ${counts[$host]:-0} == 0 )); then coverage_finding errors "$host: empty share inventory" "inventory: $inventory" "reason: no shares received"; fi
     done
-    if (( ${#entry_hosts[@]} == 0 )); then coverage_finding errors "EMPTY_INVENTORY: $inventory" "reason: no expected shares remain after exclusions; coverage cannot be established"; fi
+    if (( ${#entry_hosts[@]} == 0 )); then coverage_finding errors "$inventory: empty inventory" "reason: no expected shares remain after exclusions; coverage cannot be established"; fi
     if ! { listing=$(timeout 60 "$zfs" list -H -r -t filesystem,volume -o name,mountpoint,mounted "$dataset"); }; then coverage_error 'ZFS inventory command failed'; return 2; fi
     while IFS= read -r line; do
         if [[ $line != *$'\t'*$'\t'* ]]; then coverage_error 'malformed ZFS inventory'; return 2; fi
@@ -215,31 +215,31 @@ coverage_main() {
         for prefix in "${prefixes[@]}"; do
             if [[ $path == "$prefix/"* ]] && (( ${#prefix} > ${#best} )); then best=$prefix; fi
         done
-        if [[ -z $best ]]; then coverage_finding errors "UNMAPPED_SOURCE: $label" "server path: $host:$path" "reason: no matching --source-prefix"; continue; fi
+        if [[ -z $best ]]; then coverage_finding errors "$label: unmapped source" "server path: $host:$path" "reason: no matching --source-prefix"; continue; fi
         relative=${path:${#best}+1}; key=$dataset/$relative; vault=$ROOT/$relative
         expected_host=${host_aliases[$host]:-$host}; coverage_canonical_path "$path"; expected_path=$REPLY
         value=$expected_host:$expected_path
         if [[ -n ${destinations[$key]+x} ]]; then
-            if [[ ${destinations[$key]} != "$value" ]]; then coverage_finding errors "DESTINATION_COLLISION: $label" "server path: $host:$path" "vault dataset: $key" "conflicting source: ${destinations[$key]}"; fi
+            if [[ ${destinations[$key]} != "$value" ]]; then coverage_finding errors "$label: destination collision" "server path: $host:$path" "vault dataset: $key" "conflicting source: ${destinations[$key]}"; fi
             continue
         fi
         destinations[$key]=$value; checked=$((checked + 1))
-        if [[ -z ${present[$key]+x} ]]; then coverage_finding errors "MISSING_VAULT: $label" "server path: $host:$path" "vault dataset: $key"; continue; fi
-        if [[ ${present[$key]} != yes || ${mounts[$key]} != "$vault" ]]; then coverage_finding errors "UNAVAILABLE_VAULT: $label" "server path: $host:$path" "vault dataset: $key" "mounted: ${present[$key]}" "mountpoint: ${mounts[$key]}" "expected mountpoint: $vault"; continue; fi
-        if [[ -n ${parents[$key]+x} ]]; then coverage_finding errors "UNSCHEDULED_VAULT: $label" "server path: $host:$path" "vault dataset: $key" "reason: has child datasets; parallel-zrb.sh selects only leaf vaults"; fi
+        if [[ -z ${present[$key]+x} ]]; then coverage_finding errors "$label: missing vault" "server path: $host:$path" "vault dataset: $key"; continue; fi
+        if [[ ${present[$key]} != yes || ${mounts[$key]} != "$vault" ]]; then coverage_finding errors "$label: unavailable vault" "server path: $host:$path" "vault dataset: $key" "mounted: ${present[$key]}" "mountpoint: ${mounts[$key]}" "expected mountpoint: $vault"; continue; fi
+        if [[ -n ${parents[$key]+x} ]]; then coverage_finding errors "$label: unscheduled vault" "server path: $host:$path" "vault dataset: $key" "reason: has child datasets; parallel-zrb.sh selects only leaf vaults"; fi
         extra=''
         for value in config data log config/DISABLE config/source; do
             if ! { coverage_inside "$vault/$value"; }; then extra="path escapes backup root: $vault/$value"; break; fi
-            if [[ $value == config || $value == data || $value == log ]] && [[ ! -d $vault/$value ]]; then coverage_finding errors "MISSING_DIRECTORY: $label" "server path: $host:$path" "vault dataset: $key" "missing directory: $vault/$value"; fi
+            if [[ $value == config || $value == data || $value == log ]] && [[ ! -d $vault/$value ]]; then coverage_finding errors "$label: missing directory" "server path: $host:$path" "vault dataset: $key" "missing directory: $vault/$value"; fi
         done
-        if [[ -n $extra ]]; then coverage_finding errors "SOURCE_CONFIG_ERROR: $label" "server path: $host:$path" "vault dataset: $key" "reason: $extra"; continue; fi
-        if [[ -e $vault/config/DISABLE ]]; then coverage_finding errors "DISABLED_VAULT: $label" "server path: $host:$path" "vault dataset: $key" "disable marker: $vault/config/DISABLE"; fi
+        if [[ -n $extra ]]; then coverage_finding errors "$label: source configuration error" "server path: $host:$path" "vault dataset: $key" "reason: $extra"; continue; fi
+        if [[ -e $vault/config/DISABLE ]]; then coverage_finding errors "$label: disabled vault" "server path: $host:$path" "vault dataset: $key" "disable marker: $vault/config/DISABLE"; fi
         source_file=$vault/config/source
-        if ! { coverage_text "$source_file"; } || [[ ! $REPLY =~ ^([a-z0-9][a-z0-9.-]*@)?([a-z0-9][a-z0-9.-]*):(/.+)$ ]]; then coverage_finding errors "SOURCE_CONFIG_ERROR: $label" "server path: $host:$path" "vault dataset: $key" "source config: $source_file" "reason: invalid or unreadable source configuration"; continue; fi
+        if ! { coverage_text "$source_file"; } || [[ ! $REPLY =~ ^([a-z0-9][a-z0-9.-]*@)?([a-z0-9][a-z0-9.-]*):(/.+)$ ]]; then coverage_finding errors "$label: source configuration error" "server path: $host:$path" "vault dataset: $key" "source config: $source_file" "reason: invalid or unreadable source configuration"; continue; fi
         actual_host=${BASH_REMATCH[2]}; actual_path=${BASH_REMATCH[3]}
-        if ! { coverage_path "$actual_path"; }; then coverage_finding errors "SOURCE_CONFIG_ERROR: $label" "server path: $host:$path" "vault dataset: $key" "source config: $source_file" "reason: invalid source path"; continue; fi
+        if ! { coverage_path "$actual_path"; }; then coverage_finding errors "$label: source configuration error" "server path: $host:$path" "vault dataset: $key" "source config: $source_file" "reason: invalid source path"; continue; fi
         actual_path=$REPLY; actual_host=${host_aliases[$actual_host]:-$actual_host}; coverage_canonical_path "$actual_path"; actual_path=$REPLY
-        if [[ $actual_host != "$expected_host" || $actual_path != "$expected_path" ]]; then coverage_finding errors "WRONG_SOURCE: $label" "server path: $host:$path" "vault dataset: $key" "source config: $source_file" "configured source: $actual_host:$actual_path" "expected source: $expected_host:$expected_path"; fi
+        if [[ $actual_host != "$expected_host" || $actual_path != "$expected_path" ]]; then coverage_finding errors "$label: incorrect source" "server path: $host:$path" "vault dataset: $key" "source config: $source_file" "configured source: $actual_host:$actual_path" "expected source: $expected_host:$expected_path"; fi
     done
     if (( ${#errors[@]} )); then
         printf 'ZRB COVERAGE FAILED: %s problem(s), %s expected vault(s) checked\n' "${#errors[@]}" "$checked"

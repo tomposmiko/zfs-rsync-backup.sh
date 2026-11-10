@@ -45,18 +45,18 @@ healthy() {
 }
 missing_vault() {
     printf '%s\n' 'samba12:EFGH:/tank/Projects/EFGH' >> "$CASE_DIR/inventory"
-    check_result 1 'MISSING_VAULT: samba12/EFGH'
-    [[ $OUTPUT == $'ZRB COVERAGE FAILED: 1 problem(s), 2 expected vault(s) checked\n\nMISSING_VAULT: samba12/EFGH\n- server path: samba12:/tank/Projects/EFGH\n- vault dataset: tank/zrb/Projects/EFGH' ]]
+    check_result 1 'samba12/EFGH: missing vault'
+    [[ $OUTPUT == $'ZRB COVERAGE FAILED: 1 problem(s), 2 expected vault(s) checked\n\nsamba12/EFGH: missing vault\n- server path: samba12:/tank/Projects/EFGH\n- vault dataset: tank/zrb/Projects/EFGH' ]]
     [[ $OUTPUT != */config/source* ]]
 }
 multiple_findings() {
     rm -- "$VAULT/config/source"
     touch "$VAULT/config/DISABLE"
     printf 'tank/zrb/Projects/ABCD/volume\t-\t-\n' >> "$CASE_DIR/listing"
-    check_result 1 SOURCE_CONFIG_ERROR
+    check_result 1 'source configuration error'
     [[ $OUTPUT == 'ZRB COVERAGE FAILED: 3 problem(s), 1 expected vault(s) checked'* ]]
-    [[ $OUTPUT == *$'\n\nDISABLED_VAULT: samba11/ABCD\n- server path: samba11:/data/Projects/ABCD\n- vault dataset: tank/zrb/Projects/ABCD\n- disable marker: '* ]]
-    [[ $OUTPUT == *$'\n\nSOURCE_CONFIG_ERROR: samba11/ABCD\n'* && $OUTPUT == *$'\n\nUNSCHEDULED_VAULT: samba11/ABCD\n'* ]]
+    [[ $OUTPUT == *$'\n\nsamba11/ABCD: disabled vault\n- server path: samba11:/data/Projects/ABCD\n- vault dataset: tank/zrb/Projects/ABCD\n- disable marker: '* ]]
+    [[ $OUTPUT == *$'\n\nsamba11/ABCD: source configuration error\n'* && $OUTPUT == *$'\n\nsamba11/ABCD: unscheduled vault\n'* ]]
 }
 wrong_sources() {
     local source
@@ -66,14 +66,14 @@ wrong_sources() {
     done
     for source in 'user_name@samba11:/data/Projects/ABCD' 'USER@samba11:/data/Projects/ABCD' 'user@SAMBA11:/data/Projects/ABCD'; do
         printf '%s\n' "$source" > "$VAULT/config/source"
-        check_result 1 SOURCE_CONFIG_ERROR
+        check_result 1 'source configuration error'
     done
     printf '%s\n' 'samba11:/data/Projects/ABCD/' > "$VAULT/config/source"
     check_result 0 ''
 }
 aliases() {
     printf '%s\n' 'backup@samba11.example:/tank/Projects/ABCD' > "$VAULT/config/source"
-    check_result 1 WRONG_SOURCE
+    check_result 1 'incorrect source'
     [[ $OUTPUT == *$'\n- configured source: samba11.example:/tank/Projects/ABCD\n- expected source: samba11:/data/Projects/ABCD' ]]
     check_result 0 '' --host-alias samba11.example=samba11 --path-alias /data=/tank
     check_result 2 chained --host-alias a=b --host-alias b=c
@@ -86,16 +86,16 @@ duplicate_share() {
 }
 collision() {
     printf '%s\n' 'samba12:ABCD:/data/Projects/ABCD' >> "$CASE_DIR/inventory"
-    check_result 1 DESTINATION_COLLISION
-    [[ $OUTPUT == *$'DESTINATION_COLLISION: samba12/ABCD\n- server path: samba12:/data/Projects/ABCD\n- vault dataset: tank/zrb/Projects/ABCD\n- conflicting source: samba11:/data/Projects/ABCD' ]]
+    check_result 1 'destination collision'
+    [[ $OUTPUT == *$'samba12/ABCD: destination collision\n- server path: samba12:/data/Projects/ABCD\n- vault dataset: tank/zrb/Projects/ABCD\n- conflicting source: samba11:/data/Projects/ABCD' ]]
 }
 exclusions() {
     printf '%s\n' 'samba-dfs:Projects:/data/dfs/Projects' 'samba11:R2D2:/data/R2D2' >> "$CASE_DIR/inventory"
-    check_result 1 MISSING_VAULT
+    check_result 1 'missing vault'
     check_result 0 '' --ignore-host samba-dfs --ignore-share r2d2
-    check_result 1 MISSING_VAULT --ignore-host samba-dfs --ignore-share R2D
+    check_result 1 'missing vault' --ignore-host samba-dfs --ignore-share R2D
 }
-fully_excluded() { check_result 1 EMPTY_INVENTORY --ignore-host samba11; }
+fully_excluded() { check_result 1 'empty inventory' --ignore-host samba11; }
 invalid_inventory() {
     local row
     for row in '' '# comments' 'samba11:bad:/data/../etc' 'samba11:bad:relative/path' 'samba11:bad:/data/%U' 'bad-row'; do
@@ -103,15 +103,15 @@ invalid_inventory() {
         check_result 1 ''
     done
     printf '%s\n' 'samba11:bad:/opt/data' > "$CASE_DIR/inventory"
-    check_result 1 UNMAPPED_SOURCE
+    check_result 1 'unmapped source'
 }
 automatic_servers() {
     local now
     now=$(date +%s)
     printf '%s\n' samba11 samba12 > "$CASE_DIR/hosts"
     printf '# zrb-inventory-v1:samba11:%s:1\nsamba11:ABCD:/data/Projects/ABCD\n' "$now" > "$CASE_DIR/inventory"
-    check_result 1 'MISSING_INVENTORY: samba12' --hosts-file "$CASE_DIR/hosts" --max-inventory-age 36h
-    [[ $OUTPUT == *'EMPTY_HOST_INVENTORY: samba12'* ]]
+    check_result 1 'samba12: missing inventory' --hosts-file "$CASE_DIR/hosts" --max-inventory-age 36h
+    [[ $OUTPUT == *'samba12: empty share inventory'* ]]
     mkdir -p "$CASE_DIR/backup/Projects/EFGH/"{config,data,log}
     printf '%s\n' 'samba12:/tank/Projects/EFGH' > "$CASE_DIR/backup/Projects/EFGH/config/source"
     printf 'tank/zrb/Projects/EFGH\t%s/backup/Projects/EFGH\tyes\n' "$CASE_DIR" >> "$CASE_DIR/listing"
@@ -134,24 +134,24 @@ heartbeats() {
     printf '# zrb-inventory-v1:samba11:%s:1\nsamba11:ABCD:/data/Projects/ABCD\n' "$now" > "$CASE_DIR/inventory"
     check_result 0 '' --max-inventory-age 36h
     printf '# zrb-inventory-v1:samba11:%s:1\nsamba11:ABCD:/data/Projects/ABCD\n' "$((now - 200000))" > "$CASE_DIR/inventory"
-    check_result 1 STALE_INVENTORY --max-inventory-age 36h
+    check_result 1 'stale inventory' --max-inventory-age 36h
     printf '# zrb-inventory-v1:samba11:%s:2\nsamba11:ABCD:/data/Projects/ABCD\n' "$now" > "$CASE_DIR/inventory"
-    check_result 1 INCOMPLETE_INVENTORY
+    check_result 1 'incomplete inventory'
     printf '%s\n' 'samba11:ABCD:/data/Projects/ABCD' > "$CASE_DIR/inventory"
-    check_result 1 MISSING_INVENTORY --max-inventory-age 36h
-    check_result 1 'EMPTY_HOST_INVENTORY: samba12' --expected-host samba12
+    check_result 1 'missing inventory' --max-inventory-age 36h
+    check_result 1 'samba12: empty share inventory' --expected-host samba12
     printf '# zrb-inventory-v1:samba11:%s:1\n' "$((now + 1000))" >> "$CASE_DIR/inventory"
     check_result 1 invalid/future
 }
 mounts() {
     printf 'tank/zrb\t%s\tyes\ntank/zrb/Projects/ABCD\t%s\tno\n' "$CASE_DIR/backup" "$VAULT" > "$CASE_DIR/listing"
-    check_result 1 UNAVAILABLE_VAULT
+    check_result 1 'unavailable vault'
     printf 'tank/zrb\t%s\tyes\ntank/zrb/Projects/ABCD\t/elsewhere\tyes\n' "$CASE_DIR/backup" > "$CASE_DIR/listing"
-    check_result 1 UNAVAILABLE_VAULT
+    check_result 1 'unavailable vault'
 }
 directories() {
     rmdir "$VAULT/data"
-    check_result 1 MISSING_DIRECTORY
+    check_result 1 'missing directory'
     rm -- "$VAULT/config/source"
     ln -s "$CASE_DIR/outside" "$VAULT/config/source"
     check_result 1 'escapes backup root'
@@ -180,12 +180,12 @@ malformed_zfs() {
 share_names_with_spaces() {
     printf '%s\n' 'samba11:Company Files:/data/Projects/ABCD' > "$CASE_DIR/inventory"
     check_result 0 ''
-    check_result 1 EMPTY_INVENTORY --ignore-share 'company files'
+    check_result 1 'empty inventory' --ignore-share 'company files'
 }
 
 nul_source() {
     printf 'samba11:/data/Projects/ABCD\000\n' > "$VAULT/config/source"
-    check_result 1 SOURCE_CONFIG_ERROR
+    check_result 1 'source configuration error'
 }
 help_and_source_safety() {
     bash "$COVERAGE_SCRIPT" --help > "$CASE_DIR/help"

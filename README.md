@@ -91,7 +91,7 @@ The audit flags missing datasets/configuration/directories, incorrect sources, d
 Findings are separated by blank lines, with a short heading and labeled details:
 
 ```text
-MISSING_VAULT: samba17/HAL
+samba17/HAL: missing vault
 - server path: samba17:/data/Projects/HAL
 - vault dataset: tank/zrb/Projects/HAL
 ```
