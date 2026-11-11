@@ -13,12 +13,17 @@ SSH_TEST_STATUS=0
 SSH_TEST_ARGS=""
 SSH_TEST_CALLS=0
 SSH_TEST_FAILURES_BEFORE_SUCCESS=0
+SSH_TEST_RESTRICTED=0
 ZRB_SOURCE_RETRY_DELAY=0
 C_RED=""
 
 ssh() {
     SSH_TEST_ARGS=$*
     SSH_TEST_CALLS=$((SSH_TEST_CALLS + 1))
+
+    if [ "$SSH_TEST_RESTRICTED" -eq 1 ] && [ "${!#}" != "echo -n" ]; then
+        return 1
+    fi
 
     if [ "$SSH_TEST_CALLS" -le "$SSH_TEST_FAILURES_BEFORE_SUCCESS" ]; then
         return 1
@@ -87,7 +92,15 @@ test_accessible_remote_source_passes() {
 
     zrb_source_check_remote_access backup@example.com:/srv/data "" photos root
 
-    assert_equal "-o BatchMode=yes -o ConnectTimeout=10 backup@example.com test -d /srv/data" "$SSH_TEST_ARGS" "remote directory check"
+    assert_equal "-o BatchMode=yes -o ConnectTimeout=10 backup@example.com echo -n" "$SSH_TEST_ARGS" "remote SSH connection check"
+}
+
+test_restricted_remote_source_accepts_connection_probe() {
+    SSH_TEST_RESTRICTED=1
+
+    zrb_source_check_remote_access syncoid-backup@samba17:/data/Artists /etc/zrb/ssh_config Artists root &&
+        assert_equal "1" "$SSH_TEST_CALLS" "restricted gateway SSH attempt count" &&
+        assert_equal "-o BatchMode=yes -o ConnectTimeout=10 -F /etc/zrb/ssh_config syncoid-backup@samba17 echo -n" "$SSH_TEST_ARGS" "restricted gateway connection probe"
 }
 
 test_transient_remote_failure_is_retried() {
@@ -167,6 +180,7 @@ for TEST_NAME in \
     test_missing_ssh_config_returns_empty \
     test_local_source_skips_ssh_check \
     test_accessible_remote_source_passes \
+    test_restricted_remote_source_accepts_connection_probe \
     test_transient_remote_failure_is_retried \
     test_inaccessible_remote_source_fails \
     test_existing_local_source_without_placeholder_passes \

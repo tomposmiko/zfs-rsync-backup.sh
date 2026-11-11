@@ -96,6 +96,16 @@ exclusions() {
     check_result 1 'missing vault' --ignore-host samba-dfs --ignore-share R2D
 }
 fully_excluded() { check_result 1 'empty inventory' --ignore-host samba11; }
+repository_share_exclusion() {
+    printf '%s\n' 'deadline:DeadlineRepository:/data/DeadlineRepository' >> "$CASE_DIR/inventory"
+    check_result 1 'deadline/DeadlineRepository: missing vault'
+    check_result 0 '' --ignore-share DeadlineRepository
+    check_result 0 '' --ignore-share deadlinerepository
+    printf '%s\n' 'samba12:DeadlineRepository:/data/OtherRepository' >> "$CASE_DIR/inventory"
+    check_result 0 '' --ignore-share DeadlineRepository
+    printf '%s\n' 'deadline:DeadlineRepositoryArchive:/data/RepositoryArchive' >> "$CASE_DIR/inventory"
+    check_result 1 'deadline/DeadlineRepositoryArchive: missing vault' --ignore-share DeadlineRepository
+}
 invalid_inventory() {
     local row
     for row in '' '# comments' 'samba11:bad:/data/../etc' 'samba11:bad:relative/path' 'samba11:bad:/data/%U' 'bad-row'; do
@@ -231,7 +241,7 @@ help_and_source_safety() {
 }
 
 FAILED=0
-for TEST in healthy missing_vault multiple_findings wrong_sources aliases duplicate_share collision exclusions fully_excluded invalid_inventory automatic_servers invalid_server_list heartbeats fresh_zero_share_inventory unverified_zero_share_inventory inconsistent_zero_share_inventory mounts directories dataset_config zfs_failure malformed_zfs share_names_with_spaces nul_source help_and_source_safety; do
+for TEST in healthy missing_vault multiple_findings wrong_sources aliases duplicate_share collision exclusions fully_excluded repository_share_exclusion invalid_inventory automatic_servers invalid_server_list heartbeats fresh_zero_share_inventory unverified_zero_share_inventory inconsistent_zero_share_inventory mounts directories dataset_config zfs_failure malformed_zfs share_names_with_spaces nul_source help_and_source_safety; do
     setup_fixture "$TEST"
     export COVERAGE_SCRIPT CASE_DIR VAULT
     # Explicit subprocess preserves errexit inside each test and every assertion.

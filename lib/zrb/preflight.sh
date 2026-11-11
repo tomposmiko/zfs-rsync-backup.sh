@@ -291,7 +291,7 @@ zrb_preflight_run() {
             remote_host=$(zrb_source_remote_host "$source_path") || true
 
             if [ -n "$remote_host" ]; then
-                zrb_preflight_pass "Remote source is accessible through SSH: $source_path"
+                zrb_preflight_pass "SSH connection succeeded: $remote_host (source path access is checked by rsync during backup)"
             else
                 zrb_preflight_pass "SSH validation is not required for a local source"
             fi

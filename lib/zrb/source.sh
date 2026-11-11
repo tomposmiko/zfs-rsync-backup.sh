@@ -102,19 +102,12 @@ zrb_source_remote_accessible() {
     local source_path=$1
     local ssh_config=$2
     local backup_host
-    local remote_path
-    local quoted_remote_path
     local remote_command="echo -n"
     local attempt
     local retry_delay=${ZRB_SOURCE_RETRY_DELAY:-1}
     local -a ssh_args=()
 
     backup_host=$(zrb_source_remote_host "$source_path") || return 0
-
-    if { remote_path=$(zrb_source_remote_path "$source_path"); }; then
-        printf -v quoted_remote_path '%q' "$remote_path"
-        remote_command="test -d $quoted_remote_path"
-    fi
 
     ssh_args+=(
         -o
@@ -131,7 +124,9 @@ zrb_source_remote_accessible() {
     fi
 
     for attempt in 1 2 3; do
-        # shellcheck disable=SC2029 # The configured remote path is shell-escaped with printf %q.
+        # Restricted source gateways allow this connection probe, but may deny test -d.
+        # Rsync validates source path access during the backup.
+        # shellcheck disable=SC2029 # The remote command is a fixed connection probe.
         if { ssh "${ssh_args[@]}" "$backup_host" "$remote_command" 2>/dev/null; }; then
             return 0
         fi

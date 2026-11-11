@@ -98,9 +98,11 @@ samba17/HAL: missing vault
 
 Configure email in `etc/cron.d/zrb-coverage` (`MAILTO=root` by default). The audit example runs daily at 06:17 (server local time). The companion Puppet repository installs the checker and cron on backup servers and improves Samba inventory generation using parsed `testparm -s` output, source timestamps, row counts and independent expected-host markers. The new generator keeps the previous inventory if parsing fails.
 
+Share exclusions use `--ignore-share SHARE` and apply to all servers with case-insensitive exact matching. The example cron and Puppet defaults exclude `R2D2`, `DeadlineRepository` and `d10`; similarly named shares remain checked.
+
 ```bash
 zrb-coverage.sh --max-inventory-age 36h --hosts-file /tank/zrb/samba_servers.txt \
-  --ignore-host samba-dfs --ignore-share R2D2
+  --ignore-host samba-dfs --ignore-share R2D2 --ignore-share DeadlineRepository --ignore-share d10
 ```
 
 Strict inventory-age checking detects stale, missing and incomplete per-host exports. The regenerated aggregate file mtime is deliberately ignored. Puppet automatically registers every server managed by `pts_samba` in `/tank/zrb/samba_servers.txt`, independently of its share inventory. The scheduled audit reads this file with `--hosts-file` and detects missing share exports without a manually maintained server list. An empty or unavailable server list is an audit failure. Legacy three-field inventories remain accepted when no age requirement is passed. An empty inventory is accepted only when every non-excluded expected server has a valid, fresh header explicitly declaring zero shares. Freshness requires `--max-inventory-age`. Missing, stale or inconsistent declarations and fully excluded inventories still fail.
